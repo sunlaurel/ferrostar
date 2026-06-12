@@ -43,16 +43,16 @@ class MainActivity : ComponentActivity(), AndroidTtsStatusListener {
     // Be sure to read the class docs for further setup details.
     //
     // NOTE: We can't set this property in the same way as we do the core, because the context will
-    // not be initialized yet, but the language won't save us from doing it anyways. This will
+    // not be initialized yet, but the language won't save us from doing it anyway. This will
     // result in a confusing NPE.
     AppModule.ttsObserver.statusObserver = this
-    AppModule.ferrostarCore.spokenInstructionObserver = AppModule.ttsObserver
+    AppModule.getFerrostarCore().spokenInstructionObserver = AppModule.ttsObserver
 
     // Set up the location provider
     //    AppModule.locationProvider.lastLocation = initialSimulatedLocation
     //    AppModule.locationProvider.warpFactor = 2u
 
-    // Setup the global Ferrostar logger
+    // Set up the global Ferrostar logger
     createFerrostarLogger()
 
     // Edge to edge (this will be default in Android 15)

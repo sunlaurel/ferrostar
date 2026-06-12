@@ -214,7 +214,6 @@ class FerrostarCore(
             } else if (bodyBytes == null) {
               throw NoResponseBodyException()
             }
-
             routeProvider.adapter.parseResponse(bodyBytes)
           }
         }

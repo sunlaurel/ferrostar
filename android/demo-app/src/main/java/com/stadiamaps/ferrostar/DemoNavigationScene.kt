@@ -11,7 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -25,7 +26,11 @@ import com.stadiamaps.ferrostar.composeui.config.withCustomOverlayView
 import com.stadiamaps.ferrostar.composeui.config.withSpeedLimitStyle
 import com.stadiamaps.ferrostar.composeui.runtime.KeepScreenOnDisposableEffect
 import com.stadiamaps.ferrostar.composeui.views.components.speedlimit.SignageStyle
+import com.stadiamaps.ferrostar.core.annotation.RoadSegment
+import com.stadiamaps.ferrostar.core.annotation.fetchRoadSegments
 import com.stadiamaps.ferrostar.maplibreui.NavigationMapClickResult
+import com.stadiamaps.ferrostar.maplibreui.routeline.BorderedPolyline
+import com.stadiamaps.ferrostar.maplibreui.routeline.RouteOverlayBuilder
 import com.stadiamaps.ferrostar.maplibreui.runtime.rememberNavigationMapState
 import com.stadiamaps.ferrostar.maplibreui.views.DynamicallyOrientingNavigationView
 import com.stadiamaps.ferrostar.ui.DestinationSelectionBottomSheet
@@ -98,7 +103,7 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
   }
   val sceneState by viewModel.sceneState.collectAsState()
   val navigationMapState = rememberNavigationMapState()
-  var destinationPreviewTopPaddingPx by remember { mutableStateOf(0) }
+  var destinationPreviewTopPaddingPx by remember { mutableIntStateOf(0) }
   DestinationSelectionCameraEffect(
       selectedDestination = sceneState.selectedDestination,
       destinationSheetHeightPx = sceneState.destinationSheetHeightPx,
@@ -112,6 +117,29 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
       navigationMapState = navigationMapState,
       viewModel = viewModel,
       config = VisualNavigationViewConfig.Default().withSpeedLimitStyle(SignageStyle.MUTCD),
+      routeOverlayBuilder = RouteOverlayBuilder { uiState ->
+        // Color each edge by its Valhalla tile hierarchy level (blue = highway, orange = arterial,
+        // green = local), using road_class fetched per-edge via /trace_attributes.
+        val geometry = uiState.routeGeometry
+        val segments by
+            produceState(initialValue = emptyList<RoadSegment>(), geometry) {
+              value =
+                  geometry?.let {
+                    fetchRoadSegments(
+                        httpClient = AppModule.httpClient,
+                        traceURL = AppModule.valhallaBaseUrl + AppModule.valhallaTraceAttributesEndpoint,
+                        geometry = it,
+                        profile = AppModule.ROUTE_PROFILE,
+                    )
+                  } ?: emptyList()
+            }
+
+        if (segments.isNotEmpty()) {
+          ColoredRouteOverlay(segments = segments)
+        } else {
+          geometry?.let { BorderedPolyline(points = it) }
+        }
+      },
       views =
           NavigationViewComponentBuilder.Default()
               .withCustomOverlayView(
@@ -151,6 +179,8 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
           destination = destination,
           onClose = { viewModel.clearSelectedDestination() },
           onStartNavigation = { viewModel.startSelectedDestinationNavigation() },
+          onSelect =  { tileLevel: Int -> viewModel.setTileHierarchyLevelNavigation(tileLevel) },
+          selectedOption = viewModel.sceneState.value.tileLevelNavigation,
           onSheetHeightChanged = viewModel::setDestinationSheetHeight,
       )
     }

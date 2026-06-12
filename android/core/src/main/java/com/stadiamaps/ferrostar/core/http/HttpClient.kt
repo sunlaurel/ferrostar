@@ -5,7 +5,7 @@ import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import uniffi.ferrostar.RouteRequest
 
-/** Interface representing a basic Response from a HTTP Request */
+/** Interface representing a basic Response from an HTTP Request */
 interface IResponse {
   val isSuccessful: Boolean
   val code: Int

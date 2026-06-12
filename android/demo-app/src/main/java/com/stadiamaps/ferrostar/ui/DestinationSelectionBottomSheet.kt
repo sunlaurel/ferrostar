@@ -1,7 +1,9 @@
 package com.stadiamaps.ferrostar.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,25 +28,88 @@ import java.util.Locale
 import uniffi.ferrostar.GeographicCoordinate
 
 @Composable
+private fun TileLevelNavigationRadioGroup(
+    selectedOption: Int = -1,
+    onClick: (Int) -> Unit
+) {
+  Column (
+      verticalArrangement = Arrangement.SpaceAround,
+      horizontalAlignment = Alignment.CenterHorizontally,
+      modifier = Modifier.fillMaxWidth().padding(0.dp)
+  ) {
+    Row {
+      TileLevelSelectionOption(
+          selected = selectedOption == -1,
+          onClick = { onClick(-1) },
+          label = stringResource(R.string.default_selection),
+      )
+      TileLevelSelectionOption(
+          selected = selectedOption == 0,
+          onClick = { onClick(0) },
+          label = stringResource(R.string.highway_selection),
+      )
+    }
+    Row {
+      TileLevelSelectionOption(
+          selected = selectedOption == 1,
+          onClick = { onClick(1) },
+          label = stringResource(R.string.arterial_selection)
+      )
+      TileLevelSelectionOption(
+          selected = selectedOption == 2,
+          onClick = { onClick(2) },
+          label = stringResource(R.string.local_selection)
+      )
+    }
+  }
+}
+
+@Composable
+private fun TileLevelSelectionOption(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String
+) {
+  Row(
+      verticalAlignment = Alignment.CenterVertically,
+      modifier = Modifier
+  ) {
+    RadioButton(
+        selected = selected,
+        onClick = onClick,
+    )
+    Text(label)
+  }
+}
+
+@Composable
 fun DestinationSelectionBottomSheet(
     destination: DestinationSelection,
+    selectedOption: Int = -1,
+    onSelect: (Int) -> Unit,
     onClose: () -> Unit,
     onStartNavigation: () -> Unit,
     onSheetHeightChanged: (Int) -> Unit,
 ) {
   Box(
-      modifier = Modifier.fillMaxSize().systemBarsPadding(),
+      modifier = Modifier
+          .fillMaxSize()
+          .systemBarsPadding(),
       contentAlignment = Alignment.BottomCenter,
   ) {
     Surface(
-        modifier = Modifier.fillMaxWidth().onSizeChanged { onSheetHeightChanged(it.height) },
+        modifier = Modifier
+            .fillMaxWidth()
+            .onSizeChanged { onSheetHeightChanged(it.height) },
         shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
         tonalElevation = 8.dp,
         shadowElevation = 8.dp,
     ) {
       DestinationSelectionBottomSheetContent(
           destination = destination,
+          onSelect = onSelect,
           onClose = onClose,
+          selectedOption = selectedOption,
           onStartNavigation = onStartNavigation,
       )
     }
@@ -52,10 +118,12 @@ fun DestinationSelectionBottomSheet(
 
 @Composable
 private fun DestinationSelectionBottomSheetContent(
+    modifier: Modifier = Modifier,
     destination: DestinationSelection,
+    selectedOption: Int = -1,
+    onSelect: (Int) -> Unit,
     onClose: () -> Unit,
     onStartNavigation: () -> Unit,
-    modifier: Modifier = Modifier,
 ) {
   Column(
       modifier =
@@ -82,13 +150,21 @@ private fun DestinationSelectionBottomSheetContent(
     )
     Button(
         onClick = onStartNavigation,
-        modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp),
     ) {
       Text(stringResource(R.string.start_navigation))
     }
+    TileLevelNavigationRadioGroup(
+        selectedOption = selectedOption,
+        onClick = onSelect
+    )
     OutlinedButton(
         onClick = onClose,
-        modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp, bottom = 12.dp),
     ) {
       Text(stringResource(R.string.close_destination_sheet))
     }
@@ -113,6 +189,7 @@ private fun DestinationSelectionBottomSheetContentPreview() {
                 label = "Trafalgar Square",
             ),
         onClose = {},
+        onSelect = {},
         onStartNavigation = {},
     )
   }
@@ -132,6 +209,7 @@ private fun DestinationSelectionBottomSheetContentWithoutLabelPreview() {
                     ),
             ),
         onClose = {},
+        onSelect = {},
         onStartNavigation = {},
     )
   }

@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uniffi.ferrostar.GeographicCoordinate
 import uniffi.ferrostar.UserLocation
@@ -44,15 +45,16 @@ data class DemoNavigationSceneState(
     val selectedDestination: DestinationSelection? = null,
     val isDestinationSheetVisible: Boolean = false,
     val destinationSheetHeightPx: Int = 0,
+    val tileLevelNavigation: Int = -1,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DemoNavigationViewModel(
     // This is a simple example, but these would typically be dependency injected
-    val ferrostarCore: FerrostarCore = AppModule.ferrostarCore,
+    initialCore: FerrostarCore = AppModule.getFerrostarCore(),
     val locationProvider: NavigationLocationProvider = AppModule.locationProvider,
     annotationPublisher: AnnotationPublisher<*> = valhallaExtendedOSRMAnnotationPublisher(),
-) : DefaultNavigationViewModel(ferrostarCore, annotationPublisher) {
+) : DefaultNavigationViewModel(initialCore, annotationPublisher) {
 
   private val _hasLocationPermission = MutableStateFlow(false)
 
@@ -65,15 +67,18 @@ class DemoNavigationViewModel(
   private val _sceneState = MutableStateFlow(DemoNavigationSceneState())
   val sceneState = _sceneState.asStateFlow()
 
-  // Here's an example of injecting a custom location into the navigation UI state when isNavigating
-  // is false.
+  private val _ferrostarCore = MutableStateFlow(initialCore)
+  val ferrostarCore = _ferrostarCore.asStateFlow()
   override val navigationUiState: StateFlow<NavigationUiState> =
-      combine(super.navigationUiState, locationStateFlow) { a, b -> Pair(a, b) }
-          .map { (uiState, location) ->
-            if (uiState.isNavigating()) {
-              uiState
-            } else {
-              uiState.copy(location = location)
+      _ferrostarCore
+          .flatMapLatest { core ->
+            combine(
+                core.state.map { coreState ->
+                  NavigationUiState.fromFerrostar(coreState, isMuted = null)
+                },
+                locationStateFlow,
+            ) { uiState, location ->
+              if (uiState.isNavigating()) uiState else uiState.copy(location = location)
             }
           }
           .stateIn(
@@ -168,8 +173,16 @@ class DemoNavigationViewModel(
     startNavigation(destination.coordinate, destination.label)
   }
 
+  fun setTileHierarchyLevelNavigation(tileLevel: Int) {
+    _sceneState.update { currState ->
+      currState.copy(tileLevelNavigation = tileLevel)
+    }
+
+    Log.d("NavigationViewModel", "The tile hierarchy is set to level: $tileLevel")
+  }
+
   override fun toggleMute() {
-    val spokenInstructionObserver = ferrostarCore.spokenInstructionObserver
+    val spokenInstructionObserver = ferrostarCore.value.spokenInstructionObserver
     if (spokenInstructionObserver == null) {
       Log.d("NavigationViewModel", "Spoken instruction observer is null, mute operation ignored.")
       return
@@ -192,11 +205,26 @@ class DemoNavigationViewModel(
       // TODO: Add label to waypoint?
       // TODO: Assign the destination to the `NavigationManagerBridge`
       Log.d(TAG, "fetching route to $destination with name $name")
-      val routes =
-          ferrostarCore.getRoutes(
-              lastLocation,
-              listOf(
-                  Waypoint(coordinate = destination, kind = WaypointKind.BREAK),
+      val tileLevel = sceneState.value.tileLevelNavigation
+      Log.i(TAG, "========= Starting a route at level $tileLevel =========")
+
+      if (tileLevel == -1) {
+        _ferrostarCore.update { AppModule.getFerrostarCore() }
+      } else {
+        val zoomOptions =
+            when (tileLevel) {
+              0 -> mapOf("use_highways" to 1, "use_living_streets" to 0)
+              1 -> mapOf("use_highways" to 0, "use_living_streets" to 1)
+              else -> mapOf("use_highways" to 0, "use_living_streets" to 1)
+            }
+        val options = mapOf("costing_options" to mapOf("auto" to zoomOptions))
+        _ferrostarCore.update { AppModule.getFerrostarCore(options) }
+      }
+
+      val routes = ferrostarCore.value.getRoutes(
+          lastLocation,
+          listOf(
+              Waypoint(coordinate = destination, kind = WaypointKind.BREAK),
               ),
           )
 
@@ -207,16 +235,16 @@ class DemoNavigationViewModel(
       }
 
       if (navigationUiState.value.isNavigating()) {
-        ferrostarCore.replaceRoute(route = route)
+        ferrostarCore.value.replaceRoute(route = route)
       } else {
-        ferrostarCore.startNavigation(route = route)
+        ferrostarCore.value.startNavigation(route = route)
       }
     }
   }
 
   override fun stopNavigation() {
     locationProvider.disableSimulation()
-    ferrostarCore.stopNavigation()
+    ferrostarCore.value.stopNavigation()
   }
 
   companion object {

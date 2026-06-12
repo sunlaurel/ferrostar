@@ -5,6 +5,10 @@
     <string name="start_navigation">Start navigation</string>
     <string name="close_destination_sheet">Close</string>
     <string name="center_on_my_location">Center on my location</string>
+    <string name="default_selection">Default</string>
+    <string name="highway_selection">Highway</string>
+    <string name="arterial_selection">Arterial roads</string>
+    <string name="local_selection">Local roads</string>
     <string name="set_location_to_simulated">Set location to simulated</string>
     <string name="set_location_to_gps">Set location to GPS</string>
     <string name="location_is_simulated">Location is simulated</string>
