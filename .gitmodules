@@ -1,0 +1,3 @@
+[submodule "common/valhalla"]
+	path = common/valhalla
+	url = https://github.com/Rallista/valhalla-mobile.git
