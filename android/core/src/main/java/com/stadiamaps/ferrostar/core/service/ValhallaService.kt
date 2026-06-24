@@ -5,7 +5,6 @@ import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
-import com.stadiamaps.ferrostar.core.TAG
 import com.valhalla.api.models.RouteManeuver
 import com.valhalla.api.models.RouteRequest as ValhallaRouteRequest
 import com.valhalla.api.models.RouteResponseTrip
@@ -29,6 +28,7 @@ import uniffi.ferrostar.WaypointKind
 import java.util.UUID
 
 const val FILE_NAME = "norcal-latest.tar"
+const val TAG = "[Valhalla Service]"
 
 // How far before a maneuver to trigger the pre-transition spoken instruction, in meters.
 private const val PRE_TRANSITION_TRIGGER_DISTANCE_M = 60.0
