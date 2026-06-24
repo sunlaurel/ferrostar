@@ -29,6 +29,12 @@ mavenPublish = "0.36.0"
 material = "1.13.0"
 stadiaAutocompleteSearch = "3.0.0"
 
+# Valhalla module
+moshi = "1.15.1"
+osrm-api = "0.0.10"
+valhallaModels = "0.2.0"
+androidxTestCore = "1.6.1"
+
 [libraries]
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 # Kotlin & KotlinX
@@ -76,6 +82,16 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 
 # Demo App
 stadiamaps-autocomplete-search = { group = "com.stadiamaps", name = "jetpack-compose-autocomplete", version.ref = "stadiaAutocompleteSearch" }
+
+# Valhalla module
+moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
+moshi-adapters = { group = "com.squareup.moshi", name = "moshi-adapters", version.ref = "moshi" }
+osrm-api = { group = "com.stadiamaps", name = "osrm-openapi", version.ref = "osrm-api" }
+valhalla-models-api = { group = "io.github.rallista", name = "valhalla-models", version.ref = "valhallaModels" }
+valhalla-models-config = { group = "io.github.rallista", name = "valhalla-models-config", version.ref = "valhallaModels" }
+androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
+androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestCore" }
+androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestCore" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }
