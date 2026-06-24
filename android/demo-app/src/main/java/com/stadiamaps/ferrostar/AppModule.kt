@@ -1,9 +1,11 @@
 package com.stadiamaps.ferrostar
 
+import android.R
 import android.content.Context
 import com.stadiamaps.ferrostar.composeui.notification.DefaultForegroundNotificationBuilder
 import com.stadiamaps.ferrostar.core.AndroidTtsObserver
 import com.stadiamaps.ferrostar.core.FerrostarCore
+import com.stadiamaps.ferrostar.core.ValhallaServiceRouter
 import com.stadiamaps.ferrostar.core.http.HttpClientProvider
 import com.stadiamaps.ferrostar.core.http.OkHttpClientProvider.Companion.toOkHttpClientProvider
 import com.stadiamaps.ferrostar.core.location.NavigationLocationProvider
@@ -11,6 +13,7 @@ import com.stadiamaps.ferrostar.core.location.SimulatedLocationProvider
 import com.stadiamaps.ferrostar.core.location.toAndroidLocation
 import com.stadiamaps.ferrostar.core.service.FerrostarForegroundServiceManager
 import com.stadiamaps.ferrostar.core.service.ForegroundServiceManager
+import com.stadiamaps.ferrostar.core.service.ValhallaService
 import com.stadiamaps.ferrostar.core.withJsonOptions
 import com.stadiamaps.ferrostar.googleplayservices.FusedNavigationLocationProvider
 import com.stadiamaps.ferrostar.support.initialSimulatedLocation
@@ -99,6 +102,16 @@ object AppModule {
   fun getFerrostarCore(): FerrostarCore {
     return FerrostarCore(
         wellKnownRouteProvider = routeProvider,
+        httpClient = httpClient,
+        locationProvider = locationProvider,
+        foregroundServiceManager = foregroundServiceManager,
+        navigationControllerConfig = NavigationControllerConfig.demoConfig(),
+    )
+  }
+
+  fun getFerrostarCore(isCustom: Boolean): FerrostarCore {
+    return FerrostarCore(
+        customRouteProvider = ValhallaServiceRouter(appContext),
         httpClient = httpClient,
         locationProvider = locationProvider,
         foregroundServiceManager = foregroundServiceManager,

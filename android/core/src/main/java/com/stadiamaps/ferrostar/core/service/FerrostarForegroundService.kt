@@ -19,7 +19,7 @@ import com.stadiamaps.ferrostar.core.R
  * A foreground service for the Ferrostar navigation service. This service is responsible for
  * displaying a notification while the navigation service is running.
  *
- * It runs in it's own context and is used to ensure location and navigation services are running
+ * It runs in its own context and is used to ensure location and navigation services are running
  * even when the app is in the background.
  */
 class FerrostarForegroundService : Service(), NavigationStateObserver {

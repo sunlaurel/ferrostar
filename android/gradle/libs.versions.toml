@@ -28,7 +28,6 @@ turbine = "1.2.1"
 mavenPublish = "0.36.0"
 material = "1.13.0"
 stadiaAutocompleteSearch = "3.0.0"
-
 # Valhalla module
 moshi = "1.15.1"
 osrm-api = "0.0.10"
@@ -82,7 +81,6 @@ turbine = { group = "app.cash.turbine", name = "turbine", version.ref = "turbine
 
 # Demo App
 stadiamaps-autocomplete-search = { group = "com.stadiamaps", name = "jetpack-compose-autocomplete", version.ref = "stadiaAutocompleteSearch" }
-
 # Valhalla module
 moshi-kotlin = { group = "com.squareup.moshi", name = "moshi-kotlin", version.ref = "moshi" }
 moshi-adapters = { group = "com.squareup.moshi", name = "moshi-adapters", version.ref = "moshi" }

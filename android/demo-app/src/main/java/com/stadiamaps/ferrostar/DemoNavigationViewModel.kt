@@ -1,7 +1,11 @@
 package com.stadiamaps.ferrostar
 
+import android.Manifest
+import android.content.Context
 import android.location.Location
+import android.net.ConnectivityManager
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import androidx.lifecycle.viewModelScope
 import com.stadiamaps.ferrostar.core.DefaultNavigationViewModel
 import com.stadiamaps.ferrostar.core.FerrostarCore
@@ -209,8 +213,9 @@ class DemoNavigationViewModel(
       Log.i(TAG, "========= Starting a route at level $tileLevel =========")
 
       if (tileLevel == -1) {
-        _ferrostarCore.update { AppModule.getFerrostarCore() }
+        _ferrostarCore.update { AppModule.getFerrostarCore(true) }
       } else {
+        // Option 1: using use_highways and use_living_streets (less precise)
         val zoomOptions =
             when (tileLevel) {
               0 -> mapOf("use_highways" to 1, "use_living_streets" to 0)
@@ -240,6 +245,13 @@ class DemoNavigationViewModel(
         ferrostarCore.value.startNavigation(route = route)
       }
     }
+  }
+
+  // Checks for current connectivity details
+  @RequiresPermission(Manifest.permission.ACCESS_NETWORK_STATE)
+  fun hasValidConnectionStatus (context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    return connectivityManager.activeNetwork != null
   }
 
   override fun stopNavigation() {

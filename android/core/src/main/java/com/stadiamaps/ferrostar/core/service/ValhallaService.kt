@@ -1,10 +1,15 @@
 package com.stadiamaps.ferrostar.core.service
 
+import android.Manifest
 import android.app.Service
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
+import androidx.annotation.RequiresPermission
 import com.valhalla.api.models.RouteManeuver
 import com.valhalla.api.models.RouteRequest as ValhallaRouteRequest
 import com.valhalla.api.models.RouteResponseTrip
@@ -14,6 +19,7 @@ import com.valhalla.config.ValhallaConfigBuilder
 import com.valhalla.valhalla.Valhalla
 import com.valhalla.valhalla.ValhallaResponse
 import com.valhalla.valhalla.files.ValhallaFile
+import java.io.File
 import uniffi.ferrostar.BoundingBox
 import uniffi.ferrostar.GeographicCoordinate
 import uniffi.ferrostar.ManeuverModifier
@@ -30,6 +36,13 @@ import java.util.UUID
 const val FILE_NAME = "norcal-latest.tar"
 const val TAG = "[Valhalla Service]"
 
+/**
+ * Directory (under `filesDir`) holding a region-scoped subset of routing tiles produced by
+ * [com.valhalla.valhalla.tiles.RegionTileExtractor]. When present and non-empty, routing prefers this
+ * over the full [FILE_NAME] extract, which lets the large extract be deleted to reclaim space.
+ */
+const val OFFLINE_TILE_DIR = "offline_tiles"
+
 // How far before a maneuver to trigger the pre-transition spoken instruction, in meters.
 private const val PRE_TRANSITION_TRIGGER_DISTANCE_M = 60.0
 
@@ -39,6 +52,10 @@ class ValhallaService : Service() {
 
   override fun onBind(p0: Intent?): IBinder = binder
 
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    return START_STICKY   // for continuous background tasks
+  }
+
   inner class LocalBinder : Binder() {
     val service: ValhallaService
       get() = this@ValhallaService
@@ -46,16 +63,7 @@ class ValhallaService : Service() {
 
   fun getRoutes(rr: ValhallaRouteRequest): List<FerrostarRoute> {
     Log.d(TAG, "current file path: ${this.filesDir}")
-    val tarFile = ValhallaFile(this, FILE_NAME, this.filesDir)
-    // Note: filesDir is wiped on reinstall, so the extract must be (re)placed after each install.
-    check(tarFile.exists()) {
-      "Valhalla tile extract not found at ${tarFile.absolutePath()}. " +
-          "Build routing tiles with valhalla_build_extract and copy the result into filesDir " +
-          "(e.g. adb push to /data/local/tmp then run-as cp into the app's files dir)."
-    }
-    val config = ValhallaConfigBuilder()
-        .withTileExtract(tarFile.absolutePath())
-        .build()
+    val config = buildTileConfig()
     val valhalla = Valhalla(this, config)
     return when (val response = valhalla.route(rr)) {
       is ValhallaResponse.Osrm -> {
@@ -65,6 +73,35 @@ class ValhallaService : Service() {
       is ValhallaResponse.Json -> response.jsonResponse.trip.toFerrostarRoutes()
     }
   }
+
+  /**
+   * Build the Valhalla config, preferring a region-scoped [OFFLINE_TILE_DIR] of loose tiles when one
+   * has been cached, and otherwise falling back to the full [FILE_NAME] `tile_extract`.
+   *
+   * Using `tile_dir` lets the (large) full extract be deleted once a region has been cached, while
+   * still routing fully offline within that region.
+   */
+  private fun buildTileConfig(): com.valhalla.config.models.ValhallaConfig {
+    val offlineDir = File(filesDir, OFFLINE_TILE_DIR)
+    if (offlineDir.hasTiles()) {
+      Log.d(TAG, "Routing from offline tile_dir: ${offlineDir.absolutePath}")
+      return ValhallaConfigBuilder().withTileDir(offlineDir.absolutePath).build()
+    }
+
+    val tarFile = ValhallaFile(this, FILE_NAME, filesDir)
+    // Note: filesDir is wiped on reinstall, so the source must be (re)placed after each install.
+    check(tarFile.exists()) {
+      "No routing tiles found: neither a cached '$OFFLINE_TILE_DIR' tile directory nor the full " +
+          "extract at ${tarFile.absolutePath()}. Cache a region first, or build tiles with " +
+          "valhalla_build_extract and copy the extract into filesDir."
+    }
+    Log.d(TAG, "Routing from full tile_extract: ${tarFile.absolutePath()}")
+    return ValhallaConfigBuilder().withTileExtract(tarFile.absolutePath()).build()
+  }
+
+  /** True if this directory exists and contains at least one `.gph` tile. */
+  private fun File.hasTiles(): Boolean =
+      isDirectory && walkTopDown().any { it.isFile && it.extension == "gph" }
 }
 
 private fun RouteResponseTrip.toFerrostarRoutes(): List<FerrostarRoute> {

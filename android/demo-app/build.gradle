@@ -59,6 +59,7 @@ dependencies {
 
     implementation libs.androidx.ktx
     implementation libs.androidx.lifecycle.runtime.ktx
+    implementation libs.androidx.lifecycle.viewmodel.compose
     implementation libs.androidx.activity.compose
 
     implementation platform(libs.androidx.compose.bom)
@@ -70,6 +71,8 @@ dependencies {
     implementation libs.androidx.car.app
 
     implementation project(':core')
+    // Direct dependency for on-device region tile subsetting (RegionTileExtractor / GeoBounds).
+    implementation project(':valhalla')
     implementation project(':car-app')
     implementation project(':google-play-services')
     implementation project(':ui-compose')

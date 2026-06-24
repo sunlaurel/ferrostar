@@ -1,5 +1,6 @@
 package com.stadiamaps.ferrostar.core
 
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.stadiamaps.ferrostar.core.http.HttpClientProvider
 import com.stadiamaps.ferrostar.core.location.NavigationLocationProviding
@@ -201,9 +202,9 @@ class FerrostarCore(
         _routeRequestInFlight = true
 
         when (routeProvider) {
-          is RouteProvider.CustomProvider ->
-              routeProvider.provider.getRoutes(initialLocation, waypoints)
-
+          is RouteProvider.CustomProvider -> {
+            routeProvider.provider.getRoutes(initialLocation, waypoints)
+          }
           is RouteProvider.RouteAdapter -> {
             val routeRequest = routeProvider.adapter.generateRequest(initialLocation, waypoints)
 

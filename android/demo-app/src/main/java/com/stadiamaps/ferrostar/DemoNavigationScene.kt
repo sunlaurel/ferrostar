@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.stadiamaps.ferrostar.composeui.config.NavigationViewComponentBuilder
@@ -26,7 +27,6 @@ import com.stadiamaps.ferrostar.composeui.config.withCustomOverlayView
 import com.stadiamaps.ferrostar.composeui.config.withSpeedLimitStyle
 import com.stadiamaps.ferrostar.composeui.runtime.KeepScreenOnDisposableEffect
 import com.stadiamaps.ferrostar.composeui.views.components.speedlimit.SignageStyle
-import com.stadiamaps.ferrostar.core.annotation.RoadSegment
 import com.stadiamaps.ferrostar.core.annotation.fetchRoadSegments
 import com.stadiamaps.ferrostar.maplibreui.NavigationMapClickResult
 import com.stadiamaps.ferrostar.maplibreui.routeline.BorderedPolyline
@@ -55,6 +55,7 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
   KeepScreenOnDisposableEffect()
 
   val context = LocalContext.current
+  val focusManager = LocalFocusManager.current
 
   // Get location permissions.
   // NOTE: This is NOT a robust suggestion for how to get permissions in a production app.
@@ -66,6 +67,7 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
             Manifest.permission.ACCESS_COARSE_LOCATION,
             Manifest.permission.POST_NOTIFICATIONS,
             Manifest.permission.FOREGROUND_SERVICE_LOCATION,
+            Manifest.permission.READ_EXTERNAL_STORAGE,
         )
       } else {
         arrayOf(
@@ -104,42 +106,47 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
   val sceneState by viewModel.sceneState.collectAsState()
   val navigationMapState = rememberNavigationMapState()
   var destinationPreviewTopPaddingPx by remember { mutableIntStateOf(0) }
+  // Bumped on taps outside the search bar (i.e. on the map) to collapse the search dropdown.
+  var dismissSearchTrigger by remember { mutableIntStateOf(0) }
+  val routeOverlayBuilder = if (viewModel.hasValidConnectionStatus(context)) {
+    RouteOverlayBuilder { uiState ->
+      // Color each edge by its Valhalla tile hierarchy level (blue = highway, orange = arterial,
+      // green = local), using road_class fetched per-edge via /trace_attributes.
+      val geometry = uiState.routeGeometry
+      val segments by
+      produceState(initialValue = emptyList(), geometry) {
+        value =
+            geometry?.let {
+              fetchRoadSegments(
+                  httpClient = AppModule.httpClient,
+                  traceURL = AppModule.valhallaBaseUrl + AppModule.valhallaTraceAttributesEndpoint,
+                  geometry = it,
+                  profile = AppModule.ROUTE_PROFILE,
+              )
+            } ?: emptyList()
+      }
+      if (segments.isNotEmpty()) {
+        ColoredRouteOverlay(segments = segments)
+      } else {
+        geometry?.let { BorderedPolyline(points = it) }
+      }
+    }
+  } else RouteOverlayBuilder { uiState ->
+    uiState.routeGeometry?.let { BorderedPolyline(points = it) }
+  }
   DestinationSelectionCameraEffect(
       selectedDestination = sceneState.selectedDestination,
       destinationSheetHeightPx = sceneState.destinationSheetHeightPx,
       topOverlayBottomPx = destinationPreviewTopPaddingPx,
       navigationMapState = navigationMapState,
   )
-
   DynamicallyOrientingNavigationView(
       modifier = Modifier.fillMaxSize(),
       baseStyle = BaseStyle.Uri(AppModule.mapStyleUrl),
       navigationMapState = navigationMapState,
       viewModel = viewModel,
       config = VisualNavigationViewConfig.Default().withSpeedLimitStyle(SignageStyle.MUTCD),
-      routeOverlayBuilder = RouteOverlayBuilder { uiState ->
-        // Color each edge by its Valhalla tile hierarchy level (blue = highway, orange = arterial,
-        // green = local), using road_class fetched per-edge via /trace_attributes.
-        val geometry = uiState.routeGeometry
-        val segments by
-            produceState(initialValue = emptyList<RoadSegment>(), geometry) {
-              value =
-                  geometry?.let {
-                    fetchRoadSegments(
-                        httpClient = AppModule.httpClient,
-                        traceURL = AppModule.valhallaBaseUrl + AppModule.valhallaTraceAttributesEndpoint,
-                        geometry = it,
-                        profile = AppModule.ROUTE_PROFILE,
-                    )
-                  } ?: emptyList()
-            }
-
-        if (segments.isNotEmpty()) {
-          ColoredRouteOverlay(segments = segments)
-        } else {
-          geometry?.let { BorderedPolyline(points = it) }
-        }
-      },
+      routeOverlayBuilder = routeOverlayBuilder,
       views =
           NavigationViewComponentBuilder.Default()
               .withCustomOverlayView(
@@ -149,10 +156,19 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
                         viewModel = viewModel,
                         navigationMapState = navigationMapState,
                         onTopOverlayBottomChanged = { destinationPreviewTopPaddingPx = it },
+                        dismissSearchTrigger = dismissSearchTrigger,
                     )
                   },
               ),
       onTapExit = { viewModel.stopNavigation() },
+      onMapClick = { _, _ ->
+        // Tapping the map (i.e. outside the search bar) collapses the autocomplete search dropdown
+        // and dismisses the keyboard. Pass the event through so normal map interaction is
+        // unaffected.
+        dismissSearchTrigger++
+        focusManager.clearFocus()
+        NavigationMapClickResult.Pass
+      },
       onMapLongClick = { position, screenPosition ->
         Log.d(
             "DemoNavigationScene",

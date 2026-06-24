@@ -22,12 +22,12 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import com.stadiamaps.autocomplete.AutocompleteSearch
 import com.stadiamaps.autocomplete.center
 import com.stadiamaps.ferrostar.composeui.views.components.controls.NavigationUIButton
 import com.stadiamaps.ferrostar.composeui.views.components.gridviews.InnerGridView
 import com.stadiamaps.ferrostar.core.location.toAndroidLocation
 import com.stadiamaps.ferrostar.maplibreui.runtime.NavigationMapState
+import com.stadiamaps.ferrostar.ui.DismissibleAutocompleteSearch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,6 +37,7 @@ fun NotNavigatingOverlay(
     viewModel: DemoNavigationViewModel,
     navigationMapState: NavigationMapState,
     onTopOverlayBottomChanged: (Int) -> Unit = {},
+    dismissSearchTrigger: Int = 0,
 ) {
   val location by viewModel.location.collectAsState()
   val isSimulating by viewModel.simulated.collectAsState()
@@ -60,8 +61,11 @@ fun NotNavigatingOverlay(
                       onTopOverlayBottomChanged(coordinates.boundsInRoot().bottom.roundToInt())
                     }
             ) {
-              AutocompleteSearch(apiKey = apiKey, userLocation = location?.toAndroidLocation()) {
-                  feature ->
+              DismissibleAutocompleteSearch(
+                  apiKey = apiKey,
+                  userLocation = location?.toAndroidLocation(),
+                  dismissTrigger = dismissSearchTrigger,
+              ) { feature ->
                 feature.center()?.let { center ->
                   viewModel.selectDestination(
                       location = center,
