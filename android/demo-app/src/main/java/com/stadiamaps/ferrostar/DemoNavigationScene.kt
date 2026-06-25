@@ -35,6 +35,7 @@ import com.stadiamaps.ferrostar.maplibreui.runtime.rememberNavigationMapState
 import com.stadiamaps.ferrostar.maplibreui.views.DynamicallyOrientingNavigationView
 import com.stadiamaps.ferrostar.ui.DestinationSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.DestinationSelectionCameraEffect
+import com.stadiamaps.ferrostar.ui.RouteAlertDialog
 import kotlinx.serialization.json.buildJsonObject
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.layers.CircleLayer
@@ -200,6 +201,12 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
           onSheetHeightChanged = viewModel::setDestinationSheetHeight,
       )
     }
+  }
+
+  if (sceneState.isNoRouteFoundDialogVisible) {
+    RouteAlertDialog(
+        onDismiss = { viewModel.dismissNoRouteFoundDialog() }
+    )
   }
 }
 

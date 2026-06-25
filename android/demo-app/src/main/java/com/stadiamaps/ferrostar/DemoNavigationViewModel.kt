@@ -50,6 +50,7 @@ data class DemoNavigationSceneState(
     val isDestinationSheetVisible: Boolean = false,
     val destinationSheetHeightPx: Int = 0,
     val tileLevelNavigation: Int = -1,
+    val isNoRouteFoundDialogVisible: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -164,6 +165,10 @@ class DemoNavigationViewModel(
         )
   }
 
+  fun dismissNoRouteFoundDialog() {
+    _sceneState.update { it.copy(isNoRouteFoundDialogVisible = false) }
+  }
+
   fun setDestinationSheetHeight(heightPx: Int) {
     if (_sceneState.value.destinationSheetHeightPx == heightPx) {
       return
@@ -232,6 +237,12 @@ class DemoNavigationViewModel(
               Waypoint(coordinate = destination, kind = WaypointKind.BREAK),
               ),
           )
+
+      if (routes.isEmpty()) {
+        Log.w(TAG, "No routes returned for destination $destination; showing no-route-found dialog")
+        _sceneState.update { it.copy(isNoRouteFoundDialogVisible = true) }
+        return@launch
+      }
 
       val route = routes.first()
 

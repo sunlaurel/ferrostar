@@ -58,6 +58,7 @@ class Valhalla(
    * @see ValhallaResponse
    * @see RouteRequest.Format
    */
+  @Throws(ValhallaException::class)
   fun route(request: RouteRequest): ValhallaResponse {
     val encodedRequest = moshi.adapter(RouteRequest::class.java).toJson(request)
     val rawResponse = valhallaActor.route(encodedRequest)

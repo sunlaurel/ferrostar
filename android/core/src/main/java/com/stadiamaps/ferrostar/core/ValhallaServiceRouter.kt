@@ -10,6 +10,7 @@ import com.stadiamaps.ferrostar.core.service.ValhallaService
 import com.valhalla.api.models.CostingModel
 import com.valhalla.api.models.RouteRequest as ValhallaRouteRequest
 import com.valhalla.api.models.RoutingWaypoint
+import com.valhalla.valhalla.ValhallaException
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -44,7 +45,13 @@ class ValhallaServiceRouter(
             locations = osmWaypoints,
             costing = CostingModel.auto
         )
-        val route = service.getRoutes(vrr)
+
+        var route = emptyList<FerrostarRoute>()
+        try {
+          route = service.getRoutes(vrr)
+        } catch (_: ValhallaException) {
+          Log.e(TAG, "Routes weren't able to be fetched")
+        }
 
         context.unbindService(this)
         Log.i(TAG, "Valhalla service ended")

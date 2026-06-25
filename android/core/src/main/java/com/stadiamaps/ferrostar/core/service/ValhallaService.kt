@@ -1,15 +1,10 @@
 package com.stadiamaps.ferrostar.core.service
 
-import android.Manifest
 import android.app.Service
-import android.content.Context
-import android.net.ConnectivityManager
-import android.net.NetworkCapabilities
 import android.content.Intent
 import android.os.Binder
 import android.os.IBinder
 import android.util.Log
-import androidx.annotation.RequiresPermission
 import com.valhalla.api.models.RouteManeuver
 import com.valhalla.api.models.RouteRequest as ValhallaRouteRequest
 import com.valhalla.api.models.RouteResponseTrip
@@ -17,6 +12,7 @@ import com.valhalla.api.models.RoutingResponseWaypoint
 import com.valhalla.api.models.ValhallaLongUnits
 import com.valhalla.config.ValhallaConfigBuilder
 import com.valhalla.valhalla.Valhalla
+import com.valhalla.valhalla.ValhallaException
 import com.valhalla.valhalla.ValhallaResponse
 import com.valhalla.valhalla.files.ValhallaFile
 import java.io.File
@@ -65,12 +61,17 @@ class ValhallaService : Service() {
     Log.d(TAG, "current file path: ${this.filesDir}")
     val config = buildTileConfig()
     val valhalla = Valhalla(this, config)
-    return when (val response = valhalla.route(rr)) {
-      is ValhallaResponse.Osrm -> {
-        Log.w(TAG, "OSRM response format is not yet supported by ValhallaService; returning empty list")
-        emptyList()
+    try {
+      return when (val response = valhalla.route(rr)) {
+        is ValhallaResponse.Osrm -> {
+          Log.w(TAG, "OSRM response format is not yet supported by ValhallaService; returning empty list")
+          emptyList()
+        }
+        is ValhallaResponse.Json -> response.jsonResponse.trip.toFerrostarRoutes()
       }
-      is ValhallaResponse.Json -> response.jsonResponse.trip.toFerrostarRoutes()
+    } catch (_: ValhallaException.InvalidError) {
+      Log.e(TAG, "Invalid response returned, no route found")
+      return emptyList()
     }
   }
 
