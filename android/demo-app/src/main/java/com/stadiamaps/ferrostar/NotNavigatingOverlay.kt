@@ -1,11 +1,13 @@
 package com.stadiamaps.ferrostar
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,6 +44,7 @@ fun NotNavigatingOverlay(
   val location by viewModel.location.collectAsState()
   val isSimulating by viewModel.simulated.collectAsState()
   val uiState by viewModel.navigationUiState.collectAsState()
+  val sceneState by viewModel.sceneState.collectAsState()
   val stadiaApiKey = AppModule.stadiaApiKey
 
   LaunchedEffect(stadiaApiKey) {
@@ -78,14 +81,35 @@ fun NotNavigatingOverlay(
           }
         },
         centerEnd = {
-          NavigationUIButton(
-              onClick = { navigationMapState.recenter(isNavigating = false) },
-              buttonSize = DpSize(48.dp, 48.dp),
+          Column(
+              horizontalAlignment = Alignment.End,
+              verticalArrangement = Arrangement.spacedBy(12.dp),
           ) {
-            Icon(
-                painter = painterResource(R.drawable.my_location_24px),
-                contentDescription = stringResource(R.string.center_on_my_location),
-            )
+            NavigationUIButton(
+                onClick = { navigationMapState.recenter(isNavigating = false) },
+                buttonSize = DpSize(48.dp, 48.dp),
+            ) {
+              Icon(
+                  painter = painterResource(R.drawable.my_location_24px),
+                  contentDescription = stringResource(R.string.center_on_my_location),
+              )
+            }
+
+            // Enters/exits offline-region selection mode. Highlighted while active so the user
+            // knows their map taps are placing bounding-box corners rather than panning.
+            val regionActive = sceneState.regionSelection.isActive
+            NavigationUIButton(
+                onClick = { viewModel.toggleRegionSelectionMode() },
+                buttonSize = DpSize(48.dp, 48.dp),
+                containerColor =
+                    if (regionActive) MaterialTheme.colorScheme.primary
+                    else FloatingActionButtonDefaults.containerColor,
+            ) {
+              Icon(
+                  painter = painterResource(R.drawable.select_region_24px),
+                  contentDescription = stringResource(R.string.select_region),
+              )
+            }
           }
         },
         bottomEnd = {

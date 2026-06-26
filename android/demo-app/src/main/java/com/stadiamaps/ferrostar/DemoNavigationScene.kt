@@ -35,10 +35,12 @@ import com.stadiamaps.ferrostar.maplibreui.runtime.rememberNavigationMapState
 import com.stadiamaps.ferrostar.maplibreui.views.DynamicallyOrientingNavigationView
 import com.stadiamaps.ferrostar.ui.DestinationSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.DestinationSelectionCameraEffect
+import com.stadiamaps.ferrostar.ui.RegionSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.RouteAlertDialog
 import kotlinx.serialization.json.buildJsonObject
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.layers.CircleLayer
+import org.maplibre.compose.layers.FillLayer
 import org.maplibre.compose.map.MapOptions
 import org.maplibre.compose.map.OrnamentOptions
 import org.maplibre.compose.sources.GeoJsonData
@@ -48,6 +50,8 @@ import org.maplibre.compose.util.MaplibreComposable
 import org.maplibre.spatialk.geojson.Feature
 import org.maplibre.spatialk.geojson.FeatureCollection
 import org.maplibre.spatialk.geojson.Point
+import org.maplibre.spatialk.geojson.Polygon
+import org.maplibre.spatialk.geojson.Position
 import uniffi.ferrostar.GeographicCoordinate
 
 @Composable
@@ -162,13 +166,20 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
                   },
               ),
       onTapExit = { viewModel.stopNavigation() },
-      onMapClick = { _, _ ->
-        // Tapping the map (i.e. outside the search bar) collapses the autocomplete search dropdown
-        // and dismisses the keyboard. Pass the event through so normal map interaction is
-        // unaffected.
-        dismissSearchTrigger++
-        focusManager.clearFocus()
-        NavigationMapClickResult.Pass
+      onMapClick = { position, _ ->
+        if (sceneState.regionSelection.isActive) {
+          // In region-selection mode, taps place the bounding-box corners. Consume the event so
+          // the tap doesn't also drop a destination pin or pan-select anything underneath.
+          viewModel.addRegionCorner(position)
+          NavigationMapClickResult.Consume
+        } else {
+          // Tapping the map (i.e. outside the search bar) collapses the autocomplete search
+          // dropdown and dismisses the keyboard. Pass the event through so normal map interaction
+          // is unaffected.
+          dismissSearchTrigger++
+          focusManager.clearFocus()
+          NavigationMapClickResult.Pass
+        }
       },
       onMapLongClick = { position, screenPosition ->
         Log.d(
@@ -188,6 +199,17 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
           ),
   ) {
     DemoDroppedPinOverlay(sceneState.droppedPin)
+    DemoRegionSelectionOverlay(sceneState.regionSelection)
+  }
+
+  if (sceneState.regionSelection.isSheetVisible) {
+    sceneState.regionSelection.bounds?.let { bounds ->
+      RegionSelectionBottomSheet(
+          bounds = bounds,
+          onDownload = { viewModel.downloadSelectedRegion() },
+          onCancel = { viewModel.clearRegionSelection() },
+      )
+    }
   }
 
   if (sceneState.isDestinationSheetVisible) {
@@ -225,6 +247,71 @@ private fun DemoDroppedPinOverlay(droppedPin: GeographicCoordinate?) {
       strokeWidth = const(2.dp),
   )
 }
+
+/**
+ * Renders the in-progress offline-region selection: a translucent filled rectangle for the chosen
+ * area (once both corners are placed) plus a dot at each tapped corner. Renders nothing when no
+ * corner has been placed yet.
+ */
+@Composable
+@MaplibreComposable
+private fun DemoRegionSelectionOverlay(selection: RegionSelection) {
+  selection.bounds?.let { bounds ->
+    val boxSource =
+        rememberGeoJsonSource(GeoJsonData.Features(FeatureCollection(regionBoxFeature(bounds))))
+    FillLayer(
+        id = "demo-region-box-fill",
+        source = boxSource,
+        color = const(Color(0x333583DD)),
+        outlineColor = const(Color(0xFF3583DD)),
+    )
+  }
+
+  val corners = listOfNotNull(selection.firstCorner, selection.secondCorner)
+  if (corners.isEmpty()) return
+
+  val cornerSource =
+      rememberGeoJsonSource(
+          GeoJsonData.Features(
+              FeatureCollection(
+                  corners.map {
+                    Feature(
+                        geometry = Point(longitude = it.lng, latitude = it.lat),
+                        properties = buildJsonObject {},
+                    )
+                  }
+              )
+          )
+      )
+  CircleLayer(
+      id = "demo-region-corners",
+      source = cornerSource,
+      color = const(Color(0xFF3583DD)),
+      radius = const(8.dp),
+      strokeColor = const(Color.White),
+      strokeWidth = const(2.dp),
+  )
+}
+
+/**
+ * Builds a closed rectangle [Feature] (a GeoJSON ring) spanning the given bounds.
+ *
+ * GeoJSON rings are ordered [lng, lat] and must be closed (first position == last).
+ */
+private fun regionBoxFeature(bounds: RegionBoundingBox) =
+    Feature(
+        geometry =
+            Polygon(
+                listOf(
+                    Position(longitude = bounds.minLon, latitude = bounds.minLat),
+                    Position(longitude = bounds.maxLon, latitude = bounds.minLat),
+                    Position(longitude = bounds.maxLon, latitude = bounds.maxLat),
+                    Position(longitude = bounds.minLon, latitude = bounds.maxLat),
+                    Position(longitude = bounds.minLon, latitude = bounds.minLat),
+                )
+            ),
+        properties = buildJsonObject {},
+    )
 
 internal fun droppedPinFeatureCollectionOrNull(pin: GeographicCoordinate?) = pin?.let {
   droppedPinFeatureCollection(it)

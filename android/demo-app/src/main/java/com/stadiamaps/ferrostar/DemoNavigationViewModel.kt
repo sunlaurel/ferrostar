@@ -51,6 +51,47 @@ data class DemoNavigationSceneState(
     val destinationSheetHeightPx: Int = 0,
     val tileLevelNavigation: Int = -1,
     val isNoRouteFoundDialogVisible: Boolean = false,
+    val regionSelection: RegionSelection = RegionSelection(),
+)
+
+/**
+ * Tracks the user's in-progress drawing of an offline-region bounding box.
+ *
+ * The user enters [isActive] selection mode, then taps two opposite corners on the map. Once both
+ * corners are placed, [isSheetVisible] becomes true to confirm the download. The corners are stored
+ * in tap order; geographic min/max are derived on demand via [bounds] so the box is correct
+ * regardless of which corner was tapped first.
+ */
+data class RegionSelection(
+    val isActive: Boolean = false,
+    val firstCorner: GeographicCoordinate? = null,
+    val secondCorner: GeographicCoordinate? = null,
+    val isSheetVisible: Boolean = false,
+) {
+  /** True once both corners are placed and the box can be previewed/downloaded. */
+  val isComplete: Boolean
+    get() = firstCorner != null && secondCorner != null
+
+  /** The normalized bounding box (south-west and north-east corners), or null until complete. */
+  val bounds: RegionBoundingBox?
+    get() {
+      val a = firstCorner ?: return null
+      val b = secondCorner ?: return null
+      return RegionBoundingBox(
+          minLat = minOf(a.lat, b.lat),
+          minLon = minOf(a.lng, b.lng),
+          maxLat = maxOf(a.lat, b.lat),
+          maxLon = maxOf(a.lng, b.lng),
+      )
+    }
+}
+
+/** A normalized geographic bounding box with south-west (min) and north-east (max) corners. */
+data class RegionBoundingBox(
+    val minLat: Double,
+    val minLon: Double,
+    val maxLat: Double,
+    val maxLon: Double,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -167,6 +208,57 @@ class DemoNavigationViewModel(
 
   fun dismissNoRouteFoundDialog() {
     _sceneState.update { it.copy(isNoRouteFoundDialogVisible = false) }
+  }
+
+  /**
+   * Toggles offline-region selection mode. Entering always starts from a clean slate (any
+   * previously drawn box is discarded); exiting clears the in-progress selection.
+   */
+  fun toggleRegionSelectionMode() {
+    _sceneState.update { current ->
+      if (current.regionSelection.isActive) {
+        current.copy(regionSelection = RegionSelection())
+      } else {
+        current.copy(regionSelection = RegionSelection(isActive = true))
+      }
+    }
+  }
+
+  /**
+   * Records a tapped corner while in region selection mode. The first tap sets one corner; the
+   * second tap sets the opposite corner and reveals the confirmation sheet. Taps are ignored once
+   * the box is complete (the user must confirm or cancel before re-drawing). No-ops if selection
+   * mode is not active.
+   */
+  fun addRegionCorner(coordinate: GeographicCoordinate) {
+    _sceneState.update { current ->
+      val selection = current.regionSelection
+      if (!selection.isActive || selection.isComplete) {
+        return@update current
+      }
+      val updated =
+          if (selection.firstCorner == null) {
+            selection.copy(firstCorner = coordinate)
+          } else {
+            selection.copy(secondCorner = coordinate, isSheetVisible = true)
+          }
+      current.copy(regionSelection = updated)
+    }
+  }
+
+  /** Dismisses the confirmation sheet and clears the drawn box, but stays in selection mode. */
+  fun clearRegionSelection() {
+    _sceneState.update { it.copy(regionSelection = RegionSelection(isActive = true)) }
+  }
+
+  /**
+   * Confirms the drawn region for download. The tile-subsetting + MVT caching pipeline is not yet
+   * built (see plan), so for now this just logs the bounds and exits selection mode.
+   */
+  fun downloadSelectedRegion() {
+    val bounds = sceneState.value.regionSelection.bounds ?: return
+    Log.i(TAG, "Region download requested for bounds: $bounds")
+    _sceneState.update { it.copy(regionSelection = RegionSelection()) }
   }
 
   fun setDestinationSheetHeight(heightPx: Int) {
