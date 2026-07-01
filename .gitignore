@@ -42,6 +42,11 @@ google-services.json
 # Android Profiling
 *.hprof
 
+# Valhalla ignore
+*.tar
+*.png
+*.pdf
+
 ### Android Patch ###
 gen-external-apklibs
 
