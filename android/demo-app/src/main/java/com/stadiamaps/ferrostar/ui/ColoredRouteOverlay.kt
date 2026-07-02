@@ -1,4 +1,4 @@
-package com.stadiamaps.ferrostar
+package com.stadiamaps.ferrostar.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
@@ -21,12 +21,8 @@ fun Int.toHierarchyColor(): Color = when (this) {
  * Renders the route as per-edge colored polyline segments, each colored by its Valhalla tile
  * hierarchy level:
  *  - Blue   (#3583DD): level 0 — highways (motorway, trunk, primary)
- *  - Orange (#E8832A): level 1 — arterials (secondary, tertiary)
+ *  - Orange (#E8832A): level 1 — arterial (secondary, tertiary)
  *  - Green  (#35A74B): level 2 — local roads (residential, unclassified, service)
- *
- * [segments] come from [fetchRoadSegments] (a `/trace_attributes` call). Trace edges are
- * contiguous — one edge's end shape index equals the next edge's begin index — so the drawn
- * polylines join without gaps. Layer IDs are scoped by segment index.
  */
 @Composable
 @MaplibreComposable

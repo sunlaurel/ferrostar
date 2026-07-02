@@ -33,8 +33,10 @@ import com.stadiamaps.ferrostar.maplibreui.routeline.BorderedPolyline
 import com.stadiamaps.ferrostar.maplibreui.routeline.RouteOverlayBuilder
 import com.stadiamaps.ferrostar.maplibreui.runtime.rememberNavigationMapState
 import com.stadiamaps.ferrostar.maplibreui.views.DynamicallyOrientingNavigationView
+import com.stadiamaps.ferrostar.ui.ColoredRouteOverlay
 import com.stadiamaps.ferrostar.ui.DestinationSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.DestinationSelectionCameraEffect
+import com.stadiamaps.ferrostar.ui.NotNavigatingOverlay
 import com.stadiamaps.ferrostar.ui.RegionSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.RouteAlertDialog
 import kotlinx.serialization.json.buildJsonObject

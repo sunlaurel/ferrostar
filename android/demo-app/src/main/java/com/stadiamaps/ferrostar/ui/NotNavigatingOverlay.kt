@@ -1,4 +1,4 @@
-package com.stadiamaps.ferrostar
+package com.stadiamaps.ferrostar.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,21 +25,24 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import com.stadiamaps.autocomplete.center
+import com.stadiamaps.ferrostar.AppModule
+import com.stadiamaps.ferrostar.DemoNavigationViewModel
+import com.stadiamaps.ferrostar.DestinationSelectionOrigin
+import com.stadiamaps.ferrostar.R
 import com.stadiamaps.ferrostar.composeui.views.components.controls.NavigationUIButton
 import com.stadiamaps.ferrostar.composeui.views.components.gridviews.InnerGridView
 import com.stadiamaps.ferrostar.core.location.toAndroidLocation
 import com.stadiamaps.ferrostar.maplibreui.runtime.NavigationMapState
-import com.stadiamaps.ferrostar.ui.DismissibleAutocompleteSearch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotNavigatingOverlay(
-    modifier: Modifier = Modifier,
-    viewModel: DemoNavigationViewModel,
-    navigationMapState: NavigationMapState,
-    onTopOverlayBottomChanged: (Int) -> Unit = {},
-    dismissSearchTrigger: Int = 0,
+  modifier: Modifier = Modifier,
+  viewModel: DemoNavigationViewModel,
+  navigationMapState: NavigationMapState,
+  onTopOverlayBottomChanged: (Int) -> Unit = {},
+  dismissSearchTrigger: Int = 0,
 ) {
   val location by viewModel.location.collectAsState()
   val isSimulating by viewModel.simulated.collectAsState()
