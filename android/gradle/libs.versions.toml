@@ -32,6 +32,7 @@ stadiaAutocompleteSearch = "3.0.0"
 moshi = "1.15.1"
 osrm-api = "0.0.10"
 valhallaModels = "0.2.0"
+valhallaMobile = "0.1.0"
 androidxTestCore = "1.6.1"
 
 [libraries]
@@ -87,6 +88,7 @@ moshi-adapters = { group = "com.squareup.moshi", name = "moshi-adapters", versio
 osrm-api = { group = "com.stadiamaps", name = "osrm-openapi", version.ref = "osrm-api" }
 valhalla-models-api = { group = "io.github.rallista", name = "valhalla-models", version.ref = "valhallaModels" }
 valhalla-models-config = { group = "io.github.rallista", name = "valhalla-models-config", version.ref = "valhallaModels" }
+valhalla-mobile = { group = "io.github.rallista", name = "valhalla-mobile", version.ref = "valhallaMobile" }
 androidx-test-core = { group = "androidx.test", name = "core", version.ref = "androidxTestCore" }
 androidx-test-runner = { group = "androidx.test", name = "runner", version.ref = "androidxTestCore" }
 androidx-test-rules = { group = "androidx.test", name = "rules", version.ref = "androidxTestCore" }

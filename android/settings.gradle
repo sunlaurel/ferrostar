@@ -14,9 +14,7 @@ dependencyResolutionManagement {
 }
 rootProject.name = 'Ferrostar'
 include ':core'
-include ':valhalla'
 include ':ui-compose'
-include ':valhalla'
 include ':demo-app'
 include ':ui-maplibre'
 include ':google-play-services'

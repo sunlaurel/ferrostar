@@ -72,7 +72,6 @@ dependencies {
 
     implementation project(':core')
     // Direct dependency for on-device region tile subsetting (RegionTileExtractor / GeoBounds).
-    implementation project(':valhalla')
     implementation project(':car-app')
     implementation project(':google-play-services')
     implementation project(':ui-compose')
@@ -81,6 +80,7 @@ dependencies {
 
     implementation libs.maplibre.compose
     implementation libs.car.app.compose
+    implementation libs.valhalla.mobile
 
     implementation platform(libs.okhttp.bom)
     implementation libs.okhttp.core
