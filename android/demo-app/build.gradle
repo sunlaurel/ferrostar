@@ -31,7 +31,7 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -71,7 +71,7 @@ dependencies {
     implementation libs.androidx.car.app
 
     implementation project(':core')
-    // Direct dependency for on-device region tile subsetting (RegionTileExtractor / GeoBounds).
+    implementation project(':valhalla-service')
     implementation project(':car-app')
     implementation project(':google-play-services')
     implementation project(':ui-compose')
@@ -80,7 +80,6 @@ dependencies {
 
     implementation libs.maplibre.compose
     implementation libs.car.app.compose
-    implementation libs.valhalla.mobile
 
     implementation platform(libs.okhttp.bom)
     implementation libs.okhttp.core

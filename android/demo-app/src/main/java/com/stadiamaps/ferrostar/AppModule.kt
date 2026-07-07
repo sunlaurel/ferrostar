@@ -1,6 +1,5 @@
 package com.stadiamaps.ferrostar
 
-import android.R
 import android.content.Context
 import com.stadiamaps.ferrostar.composeui.notification.DefaultForegroundNotificationBuilder
 import com.stadiamaps.ferrostar.core.AndroidTtsObserver
@@ -13,7 +12,6 @@ import com.stadiamaps.ferrostar.core.location.SimulatedLocationProvider
 import com.stadiamaps.ferrostar.core.location.toAndroidLocation
 import com.stadiamaps.ferrostar.core.service.FerrostarForegroundServiceManager
 import com.stadiamaps.ferrostar.core.service.ForegroundServiceManager
-import com.stadiamaps.ferrostar.core.service.ValhallaService
 import com.stadiamaps.ferrostar.core.withJsonOptions
 import com.stadiamaps.ferrostar.googleplayservices.FusedNavigationLocationProvider
 import com.stadiamaps.ferrostar.support.initialSimulatedLocation
@@ -28,8 +26,6 @@ import uniffi.ferrostar.WellKnownRouteProvider
  * real app, use your preferred injection system.
  */
 object AppModule {
-  private const val TAG = "AppModule"
-
   private lateinit var appContext: Context
 
   // Here we show examples of how to use Ferrostar with a routing API.
@@ -110,13 +106,16 @@ object AppModule {
   }
 
   fun getFerrostarCore(isCustom: Boolean): FerrostarCore {
-    return FerrostarCore(
-        customRouteProvider = ValhallaServiceRouter(appContext),
-        httpClient = httpClient,
-        locationProvider = locationProvider,
-        foregroundServiceManager = foregroundServiceManager,
-        navigationControllerConfig = NavigationControllerConfig.demoConfig(),
-    )
+    if (isCustom) {
+      return FerrostarCore(
+          customRouteProvider = ValhallaServiceRouter(appContext),
+          httpClient = httpClient,
+          locationProvider = locationProvider,
+          foregroundServiceManager = foregroundServiceManager,
+          navigationControllerConfig = NavigationControllerConfig.demoConfig(),
+      )
+    }
+    return getFerrostarCore()
   }
 
   fun getFerrostarCore(options: Map<String, Any>? = null): FerrostarCore {

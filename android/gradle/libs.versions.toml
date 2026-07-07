@@ -32,7 +32,7 @@ stadiaAutocompleteSearch = "3.0.0"
 moshi = "1.15.1"
 osrm-api = "0.0.10"
 valhallaModels = "0.2.0"
-valhallaMobile = "0.1.0"
+valhallaMobile = "0.5.1"
 androidxTestCore = "1.6.1"
 
 [libraries]

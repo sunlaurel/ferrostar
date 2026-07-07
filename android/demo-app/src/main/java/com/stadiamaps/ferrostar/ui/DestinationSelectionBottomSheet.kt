@@ -41,7 +41,7 @@ private fun TileLevelNavigationRadioGroup(
       TileLevelSelectionOption(
           selected = selectedOption == -1,
           onClick = { onClick(-1) },
-          label = stringResource(R.string.default_selection),
+          label = stringResource(R.string.service_selection),
       )
       TileLevelSelectionOption(
           selected = selectedOption == 0,

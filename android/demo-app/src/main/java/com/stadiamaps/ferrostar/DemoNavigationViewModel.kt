@@ -310,7 +310,7 @@ class DemoNavigationViewModel(
       Log.i(TAG, "========= Starting a route at level $tileLevel =========")
 
       if (tileLevel == -1) {
-        _ferrostarCore.update { AppModule.getFerrostarCore(true) }
+        _ferrostarCore.update { AppModule.getFerrostarCore(true) }  // <-- this is for offline routing
       } else {
         // Option 1: using use_highways and use_living_streets (less precise)
         val zoomOptions =

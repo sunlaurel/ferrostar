@@ -12,8 +12,17 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
+
+includeBuild('../../valhalla_bindings/android') {
+    dependencySubstitution {
+        // substitutes the published jni bindings with the local binding module
+        substitute module('io.github.rallista:valhalla-mobile') using project(':valhalla')
+    }
+}
+
 rootProject.name = 'Ferrostar'
 include ':core'
+include ':valhalla-service'
 include ':ui-compose'
 include ':demo-app'
 include ':ui-maplibre'

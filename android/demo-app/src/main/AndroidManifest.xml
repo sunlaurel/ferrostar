@@ -68,11 +68,6 @@
             </intent-filter>
         </service>
 
-        <service
-            android:name=".core.service.ValhallaService"
-            android:exported="false"
-            android:enabled="true" />
-
     </application>
     <queries>
         <intent>

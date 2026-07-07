@@ -11,7 +11,7 @@
     <string name="location_is_simulated">Standort: simuliert</string>
     <string name="location_is_gps">Standort: GPS</string>
     <string name="select_region">Region auswählen</string>
-    <string name="default_selection">Standard</string>
+    <string name="service_selection">die Dienstleistung</string>
     <string name="highway_selection">Autobahn</string>
     <string name="arterial_selection">Hauptverkehrsstraßen</string>
     <string name="local_selection">lokale Straßen</string>

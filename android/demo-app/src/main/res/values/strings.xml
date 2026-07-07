@@ -11,7 +11,7 @@
     <string name="location_is_simulated">Location: simulated</string>
     <string name="location_is_gps">Location: GPS</string>
     <string name="select_region">Select region</string>
-    <string name="default_selection">Default</string>
+    <string name="service_selection">Service</string>
     <string name="highway_selection">Highway</string>
     <string name="arterial_selection">Arterial roads</string>
     <string name="local_selection">Local roads</string>
