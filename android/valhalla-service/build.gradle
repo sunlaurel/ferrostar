@@ -1,0 +1,65 @@
+import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+
+plugins {
+    alias libs.plugins.androidLibrary
+    alias libs.plugins.ktfmt
+    alias libs.plugins.mavenPublish
+}
+
+android {
+    namespace 'com.stadiamaps.ferrostar.valhalla'
+    compileSdk = 36
+
+    defaultConfig {
+        minSdk 25
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    buildFeatures {
+        // Generates the IValhallaService stub/proxy from src/main/aidl
+        aidl true
+    }
+    lint {
+        targetSdk 36
+    }
+    testOptions {
+        targetSdk 36
+    }
+}
+
+dependencies {
+    api project(':core')
+
+    implementation libs.valhalla.mobile
+    implementation libs.valhalla.models.api
+    implementation libs.valhalla.models.config
+
+    implementation libs.moshi.kotlin
+
+    implementation libs.kotlinx.coroutines
+
+    testImplementation libs.junit
+    testImplementation libs.kotlinx.coroutines.test
+    testImplementation libs.mockk
+}
+
+mavenPublishing {
+    publishToMavenCentral()
+    if (!project.hasProperty(SKIP_SIGNING_PROPERTY)) {
+        signAllPublications()
+    }
+
+    configure(new AndroidSingleVariantLibrary("release", true, true))
+
+    apply from: "${rootProject.projectDir}/common-pom.gradle"
+
+    pom {
+        name = "Ferrostar Valhalla Service"
+        description = "On-device Valhalla routing: bound service, AIDL IPC, and Ferrostar route provider"
+        commonPomConfig(it)
+    }
+}
