@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import uniffi.ferrostar.GeographicCoordinate
+import uniffi.ferrostar.TripState
 import uniffi.ferrostar.UserLocation
 import uniffi.ferrostar.Waypoint
 import uniffi.ferrostar.WaypointKind
@@ -144,6 +146,13 @@ class DemoNavigationViewModel(
             }
           }
           .collect { locationStateFlow.emit(it) }
+    }
+
+    viewModelScope.launch {
+      navigationUiState
+          .map { it.tripState is TripState.Complete }
+          .distinctUntilChanged()
+          .collect { hasArrived -> if (hasArrived && simulated.value) stopNavigation() }
     }
   }
 
@@ -272,6 +281,12 @@ class DemoNavigationViewModel(
     val destination = sceneState.value.selectedDestination ?: return
     clearSelectedDestination()
     startNavigation(destination.coordinate, destination.label)
+  }
+
+  /** Starts navigation to the selected destination using the simulated location provider. */
+  fun startSimulatedNavigationForSelectedDestination() {
+    enableAutoDriveSimulation()
+    startSelectedDestinationNavigation()
   }
 
   fun setTileHierarchyLevelNavigation(tileLevel: Int) {

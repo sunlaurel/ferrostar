@@ -220,6 +220,7 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
           destination = destination,
           onClose = { viewModel.clearSelectedDestination() },
           onStartNavigation = { viewModel.startSelectedDestinationNavigation() },
+          onSimulateNavigation = { viewModel.startSimulatedNavigationForSelectedDestination() },
           onSelect =  { tileLevel: Int -> viewModel.setTileHierarchyLevelNavigation(tileLevel) },
           selectedOption = viewModel.sceneState.value.tileLevelNavigation,
           onSheetHeightChanged = viewModel::setDestinationSheetHeight,

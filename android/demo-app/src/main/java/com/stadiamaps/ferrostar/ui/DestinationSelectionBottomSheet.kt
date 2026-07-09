@@ -89,6 +89,7 @@ fun DestinationSelectionBottomSheet(
     onSelect: (Int) -> Unit,
     onClose: () -> Unit,
     onStartNavigation: () -> Unit,
+    onSimulateNavigation: () -> Unit,
     onSheetHeightChanged: (Int) -> Unit,
 ) {
   Box(
@@ -111,6 +112,7 @@ fun DestinationSelectionBottomSheet(
           onClose = onClose,
           selectedOption = selectedOption,
           onStartNavigation = onStartNavigation,
+          onSimulateNavigation = onSimulateNavigation,
       )
     }
   }
@@ -124,6 +126,7 @@ private fun DestinationSelectionBottomSheetContent(
     onSelect: (Int) -> Unit,
     onClose: () -> Unit,
     onStartNavigation: () -> Unit,
+    onSimulateNavigation: () -> Unit,
 ) {
   Column(
       modifier =
@@ -155,6 +158,14 @@ private fun DestinationSelectionBottomSheetContent(
             .padding(top = 24.dp),
     ) {
       Text(stringResource(R.string.start_navigation))
+    }
+    OutlinedButton(
+        onClick = onSimulateNavigation,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 12.dp),
+    ) {
+      Text(stringResource(R.string.simulate_navigation))
     }
     TileLevelNavigationRadioGroup(
         selectedOption = selectedOption,
@@ -191,6 +202,7 @@ private fun DestinationSelectionBottomSheetContentPreview() {
         onClose = {},
         onSelect = {},
         onStartNavigation = {},
+        onSimulateNavigation = {},
     )
   }
 }
@@ -211,6 +223,7 @@ private fun DestinationSelectionBottomSheetContentWithoutLabelPreview() {
         onClose = {},
         onSelect = {},
         onStartNavigation = {},
+        onSimulateNavigation = {},
     )
   }
 }
