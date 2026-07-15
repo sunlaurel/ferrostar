@@ -7,7 +7,6 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import android.util.Log
 import com.stadiamaps.ferrostar.core.service.IValhallaService
-import com.stadiamaps.ferrostar.core.valhalla.TAG
 import com.stadiamaps.ferrostar.core.valhalla.ValhallaService
 import com.stadiamaps.ferrostar.core.valhalla.decodeRoutesEnvelope
 import com.stadiamaps.ferrostar.core.valhalla.valhallaIpcMoshi
@@ -35,14 +34,14 @@ import uniffi.ferrostar.VisualInstructionContent
 import uniffi.ferrostar.Waypoint as FerrostarWaypoint
 import uniffi.ferrostar.WaypointKind as FerrostarWaypointKind
 
-const val TAG = "Valhalla Service Router"
+const val TAG = "[Valhalla Service Router]"
 private const val PRE_TRANSITION_TRIGGER_DISTANCE_M = 60.0
 
 /**
  * A [CustomRouteProvider] that generates routes on-device by binding to [ValhallaService], which
  * runs the Valhalla engine in a separate process. The service returns Valhalla's own JSON trip
  * across the [IValhallaService] AIDL boundary; the mapping into Ferrostar's [FerrostarRoute] model
- * happens here, in the caller's process (see [ValhallaIPC] for why).
+ * happens here, in the caller's process.
  */
 class ValhallaServiceRouter(
     private val context: Context,
@@ -72,7 +71,9 @@ class ValhallaServiceRouter(
                 try {
                   val requestJson =
                       valhallaIpcMoshi.adapter(ValhallaRouteRequest::class.java).toJson(request)
-                  decodeRoutesEnvelope(service.getRoutes(requestJson)).toFerrostarRoutes()
+                  decodeRoutesEnvelope(
+                      service.getRoutes(requestJson)
+                  ).toFerrostarRoutes()
                 } catch (e: Exception) {
                   Log.e(TAG, "Routes weren't able to be fetched", e)
                   emptyList()

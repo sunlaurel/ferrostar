@@ -75,6 +75,11 @@ object AppModule {
     OkHttpClient.Builder().callTimeout(Duration.ofSeconds(15)).build().toOkHttpClientProvider()
   }
 
+  /** Raw client for bulk tile prefetching; a longer timeout suits larger tile payloads. */
+  val tilePrefetchClient: OkHttpClient by lazy {
+    OkHttpClient.Builder().callTimeout(Duration.ofSeconds(30)).build()
+  }
+
   private val foregroundServiceManager: ForegroundServiceManager by lazy {
     FerrostarForegroundServiceManager(appContext, DefaultForegroundNotificationBuilder(appContext))
   }

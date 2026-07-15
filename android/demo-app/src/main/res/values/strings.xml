@@ -12,6 +12,7 @@
     <string name="location_is_simulated">Location: simulated</string>
     <string name="location_is_gps">Location: GPS</string>
     <string name="select_region">Select region</string>
+    <string name="show_tile_cache_overlay">Show cached tiles</string>
     <string name="service_selection">Service</string>
     <string name="highway_selection">Highway</string>
     <string name="arterial_selection">Arterial roads</string>
@@ -20,4 +21,5 @@
     <string name="region_bounds">Bounded region</string>
     <string name="region_download">Download region</string>
     <string name="region_cancel">Cancel</string>
+    <string name="region_downloading">Level %1$d: %2$d/%3$d — %4$d/%5$d tiles (%6$d failed)</string>
 </resources>

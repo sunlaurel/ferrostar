@@ -14,7 +14,11 @@ import com.stadiamaps.ferrostar.core.annotation.AnnotationPublisher
 import com.stadiamaps.ferrostar.core.annotation.valhalla.valhallaExtendedOSRMAnnotationPublisher
 import com.stadiamaps.ferrostar.core.location.NavigationLocationProvider
 import com.stadiamaps.ferrostar.core.location.toUserLocation
+import com.stadiamaps.ferrostar.core.valhalla.Config
+import com.stadiamaps.ferrostar.support.RegionDownloadProgress
 import com.stadiamaps.ferrostar.support.initialSimulatedLocation
+import com.stadiamaps.ferrostar.support.prefetchRegionTiles
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,6 +58,8 @@ data class DemoNavigationSceneState(
     val tileLevelNavigation: Int = -1,
     val isNoRouteFoundDialogVisible: Boolean = false,
     val regionSelection: RegionSelection = RegionSelection(),
+    val showTileCacheOverlay: Boolean = false,
+    val regionDownload: RegionDownloadProgress? = null,
 )
 
 /**
@@ -260,14 +266,36 @@ class DemoNavigationViewModel(
     _sceneState.update { it.copy(regionSelection = RegionSelection(isActive = true)) }
   }
 
+  /** Toggles the colored overlay showing which routing tiles are currently cached on disk. */
+  fun toggleTileCacheOverlay() {
+    _sceneState.update { it.copy(showTileCacheOverlay = !it.showTileCacheOverlay) }
+  }
+
   /**
-   * Confirms the drawn region for download. The tile-subsetting + MVT caching pipeline is not yet
-   * built (see plan), so for now this just logs the bounds and exits selection mode.
+   * Confirms the drawn region and prefetches every intersecting routing tile into `tile_dir`, one
+   * hierarchy level at a time (highways first). Progress is streamed into [DemoNavigationSceneState.regionDownload]
+   * so the confirmation sheet can show it; the selection is only cleared once the download settles.
    */
-  fun downloadSelectedRegion() {
+  fun downloadSelectedRegion(context: Context) {
     val bounds = sceneState.value.regionSelection.bounds ?: return
     Log.i(TAG, "Region download requested for bounds: $bounds")
-    _sceneState.update { it.copy(regionSelection = RegionSelection()) }
+
+    val tileDir = File(context.filesDir, Config.TILE_DIR)
+    val urlTemplate = Config.TILE_BASE_URL + Config.TILE_ENDPOINT + Config.TILE_PATH
+
+    viewModelScope.launch(Dispatchers.IO) {
+      prefetchRegionTiles(
+          tileDir = tileDir,
+          bounds = bounds,
+          urlTemplate = urlTemplate,
+          gzipped = Config.TILE_URL_GZ,
+          client = AppModule.tilePrefetchClient,
+      ) { progress ->
+        _sceneState.update { it.copy(regionDownload = progress) }
+      }
+      Log.i(TAG, "Region download complete for bounds: $bounds")
+      _sceneState.update { it.copy(regionSelection = RegionSelection(), regionDownload = null) }
+    }
   }
 
   fun setDestinationSheetHeight(heightPx: Int) {

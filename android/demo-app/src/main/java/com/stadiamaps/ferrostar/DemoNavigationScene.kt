@@ -12,6 +12,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -39,6 +40,12 @@ import com.stadiamaps.ferrostar.ui.DestinationSelectionCameraEffect
 import com.stadiamaps.ferrostar.ui.NotNavigatingOverlay
 import com.stadiamaps.ferrostar.ui.RegionSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.RouteAlertDialog
+import com.stadiamaps.ferrostar.core.valhalla.Config as ValhallaConfig
+import com.stadiamaps.ferrostar.support.CachedTile
+import com.stadiamaps.ferrostar.support.scanCachedTiles
+import java.io.File
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.buildJsonObject
 import org.maplibre.compose.expressions.dsl.const
 import org.maplibre.compose.layers.CircleLayer
@@ -113,8 +120,16 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
   val sceneState by viewModel.sceneState.collectAsState()
   val navigationMapState = rememberNavigationMapState()
   var destinationPreviewTopPaddingPx by remember { mutableIntStateOf(0) }
-  // Bumped on taps outside the search bar (i.e. on the map) to collapse the search dropdown.
   var dismissSearchTrigger by remember { mutableIntStateOf(0) }
+  var tiles by remember { mutableStateOf<List<CachedTile>>(emptyList()) }
+  // Rescans the tile directory when the region is finished downloading and updates the overlay
+  val isRegionDownloadActive = sceneState.regionDownload != null
+  LaunchedEffect(isRegionDownloadActive) {
+    tiles =
+        withContext(Dispatchers.IO) {
+          scanCachedTiles(File(context.filesDir, ValhallaConfig.TILE_DIR))
+        }
+  }
   val routeOverlayBuilder = if (viewModel.hasValidConnectionStatus(context)) {
     RouteOverlayBuilder { uiState ->
       // Color each edge by its Valhalla tile hierarchy level (blue = highway, orange = arterial,
@@ -202,14 +217,16 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
   ) {
     DemoDroppedPinOverlay(sceneState.droppedPin)
     DemoRegionSelectionOverlay(sceneState.regionSelection)
+    DemoTileCacheOverlay(sceneState.showTileCacheOverlay, tiles)
   }
 
   if (sceneState.regionSelection.isSheetVisible) {
     sceneState.regionSelection.bounds?.let { bounds ->
       RegionSelectionBottomSheet(
           bounds = bounds,
-          onDownload = { viewModel.downloadSelectedRegion() },
+          onDownload = { viewModel.downloadSelectedRegion(context) },
           onCancel = { viewModel.clearRegionSelection() },
+          downloadProgress = sceneState.regionDownload,
       )
     }
   }
@@ -294,6 +311,36 @@ private fun DemoRegionSelectionOverlay(selection: RegionSelection) {
       strokeColor = const(Color.White),
       strokeWidth = const(2.dp),
   )
+}
+
+/**
+ * Renders a colored overlay of the Valhalla routing tiles currently cached on disk in `tile_dir`,
+ * one fill layer per tile hierarchy level (0 = highway, 1 = arterial, 2 = local) so the levels are
+ * visually distinguishable. Tiles are scanned from disk each time the overlay is shown.
+ */
+@Composable
+@MaplibreComposable
+fun DemoTileCacheOverlay(displayOverlay: Boolean, tiles: List<CachedTile>) {
+  if (displayOverlay) {
+    val levelFillColors =
+        mapOf(0 to Color(0x40FD8178), 1 to Color(0x3EFFED8C), 2 to Color(0x3E008DF1))
+    val levelOutlineColors =
+        mapOf(0 to Color(0x40FD8178), 1 to Color(0x3EFFD830), 2 to Color(0x3E008DF1))
+
+    levelFillColors.keys.forEach { level ->
+      val levelTiles = tiles.filter { it.level == level }
+      val source =
+          rememberGeoJsonSource(
+              GeoJsonData.Features(FeatureCollection(levelTiles.map { regionBoxFeature(it.bounds) }))
+          )
+      FillLayer(
+          id = "demo-tile-cache-level-$level",
+          source = source,
+          color = const(levelFillColors.getValue(level)),
+          outlineColor = const(levelOutlineColors.getValue(level)),
+      )
+    }
+  }
 }
 
 /**

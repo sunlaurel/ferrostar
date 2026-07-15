@@ -1,21 +1,27 @@
 package com.stadiamaps.ferrostar.core.valhalla
 
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import android.util.Log
+import com.squareup.moshi.Moshi
+import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import com.stadiamaps.ferrostar.core.service.IValhallaService
+import com.stadiamaps.ferrostar.core.valhalla.Config.TAR_FILE_NAME
+import com.stadiamaps.ferrostar.core.valhalla.Config.TILE_BASE_URL
+import com.stadiamaps.ferrostar.core.valhalla.Config.TILE_ENDPOINT
+import com.stadiamaps.ferrostar.core.valhalla.Config.TILE_PATH
+import com.stadiamaps.ferrostar.core.valhalla.Config.TILE_URL_GZ
 import com.valhalla.api.models.RouteRequest as ValhallaRouteRequest
 import com.valhalla.api.models.RouteResponseTrip
 import com.valhalla.config.ValhallaConfigBuilder
-import com.valhalla.config.models.ValhallaConfig
 import com.valhalla.valhalla.Valhalla
 import com.valhalla.valhalla.ValhallaException
 import com.valhalla.valhalla.ValhallaResponse
+import com.valhalla.valhalla.config.ValhallaConfigManager
 import com.valhalla.valhalla.files.ValhallaFile
 import java.io.File
-
-const val FILE_NAME = "valhalla-tiles.tar"
 const val TAG = "[Valhalla Service]"
 
 /**
@@ -52,8 +58,8 @@ class ValhallaService : Service() {
    *   Ferrostar mapping downstream only understands the native Valhalla JSON trip.
    */
   private fun route(request: ValhallaRouteRequest): RouteResponseTrip {
-    Log.d(TAG, "current file path: ${this.filesDir}")
-    val valhalla = Valhalla(this, buildTileConfig())
+//    val valhalla = buildValhallaTileExtract()  // <-- used when routing from a tile extract
+    val valhalla = buildValhallaTileDir(this)  // <-- used when routing from url
     return when (val response = valhalla.route(request)) {
       is ValhallaResponse.Osrm -> {
         Log.w(TAG, "OSRM response format is not yet supported by ValhallaService")
@@ -63,9 +69,9 @@ class ValhallaService : Service() {
     }
   }
 
-  /** Build the Valhalla config pointing at the full [FILE_NAME] `tile_extract` in `filesDir`. */
-  private fun buildTileConfig(): ValhallaConfig {
-    val tarFile = ValhallaFile(this, FILE_NAME, resolveTileExtractParentDir())
+  /** Build the Valhalla config pointing at the full [TAR_FILE_NAME] `tile_extract` in `filesDir`. */
+  private fun buildValhallaTileExtract(): Valhalla {
+    val tarFile = ValhallaFile(this, TAR_FILE_NAME, resolveParentDir())
     // Note: filesDir is wiped on reinstall, so the extract must be (re)placed after each install.
     check(tarFile.exists()) {
       "No routing tiles found at ${tarFile.absolutePath()}. Build tiles with valhalla_build_extract " +
@@ -75,14 +81,36 @@ class ValhallaService : Service() {
       "Routing tiles exist but are unreadable at ${tarFile.absolutePath()}."
     }
     Log.d(TAG, "Routing from full tile_extract: ${tarFile.absolutePath()}")
-    return ValhallaConfigBuilder().withTileExtract(tarFile.absolutePath()).build()
+    val config = ValhallaConfigBuilder().withTileExtract(tarFile.absolutePath()).build()
+    return Valhalla(this, config)
   }
 
-  private fun resolveTileExtractParentDir(): File {
-    val internalFile = File(filesDir, FILE_NAME)
+  fun buildValhallaTileDir(
+      context: Context,
+      tileDir: String = Config.TILE_DIR,
+  ): Valhalla {
+    // Anchor the cache under the app's private filesDir; a bare relative path resolves against the
+    // process working directory (/ on Android), which is not writable, so Valhalla could neither
+    // cache fetched tiles nor write its id.txt there.
+    val cacheDir =
+        File(context.filesDir, tileDir).apply {
+          check(mkdirs() || isDirectory) { "Unable to create tile_dir at $absolutePath" }
+        }
+
+    val config = ValhallaConfigBuilder().withTileDir(cacheDir.absolutePath).build()
+    val moshi =
+        Moshi.Builder()
+            .add(TileUrlConfigInjectorFactory("$TILE_BASE_URL$TILE_ENDPOINT$TILE_PATH", TILE_URL_GZ))
+            .add(KotlinJsonAdapterFactory())
+            .build()
+    return Valhalla(context, config, ValhallaConfigManager(context, moshi = moshi))
+  }
+
+  private fun resolveParentDir(): File {
+    val internalFile = File(filesDir, TAR_FILE_NAME)
     if (internalFile.exists() && internalFile.canRead()) return filesDir
 
-    val externalFile = getExternalFilesDir(null)?.let { File(it, FILE_NAME) }
+    val externalFile = getExternalFilesDir(null)?.let { File(it, TAR_FILE_NAME) }
     if (externalFile?.exists() == true && externalFile.canRead()) {
       externalFile.inputStream().use { input ->
         internalFile.outputStream().use { output -> input.copyTo(output) }

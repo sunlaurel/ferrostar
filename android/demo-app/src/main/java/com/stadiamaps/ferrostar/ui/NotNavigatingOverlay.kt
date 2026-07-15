@@ -113,6 +113,21 @@ fun NotNavigatingOverlay(
                   contentDescription = stringResource(R.string.select_region),
               )
             }
+
+            // Toggles a colored overlay of the routing tiles currently cached in tile_dir.
+            val tileCacheOverlayActive = sceneState.showTileCacheOverlay
+            NavigationUIButton(
+                onClick = { viewModel.toggleTileCacheOverlay() },
+                buttonSize = DpSize(48.dp, 48.dp),
+                containerColor =
+                    if (tileCacheOverlayActive) MaterialTheme.colorScheme.primary
+                    else FloatingActionButtonDefaults.containerColor,
+            ) {
+              Icon(
+                  painter = painterResource(R.drawable.layers_24px),
+                  contentDescription = stringResource(R.string.show_tile_cache_overlay),
+              )
+            }
           }
         },
         bottomEnd = {

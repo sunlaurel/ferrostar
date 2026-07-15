@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -20,6 +21,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.stadiamaps.ferrostar.R
 import com.stadiamaps.ferrostar.RegionBoundingBox
+import com.stadiamaps.ferrostar.support.RegionDownloadProgress
 import java.util.Locale
 
 /**
@@ -32,6 +34,7 @@ fun RegionSelectionBottomSheet(
     bounds: RegionBoundingBox,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
+    downloadProgress: RegionDownloadProgress? = null,
 ) {
   Box(
       modifier = Modifier.fillMaxSize().systemBarsPadding(),
@@ -47,6 +50,7 @@ fun RegionSelectionBottomSheet(
           bounds = bounds,
           onDownload = onDownload,
           onCancel = onCancel,
+          downloadProgress = downloadProgress,
       )
     }
   }
@@ -58,7 +62,9 @@ private fun RegionSelectionBottomSheetContent(
     bounds: RegionBoundingBox,
     onDownload: () -> Unit,
     onCancel: () -> Unit,
+    downloadProgress: RegionDownloadProgress? = null,
 ) {
+  val isDownloading = downloadProgress != null
   Column(modifier = modifier.padding(horizontal = 24.dp, vertical = 16.dp)) {
     Text(
         text = stringResource(R.string.region_selection_title),
@@ -70,14 +76,41 @@ private fun RegionSelectionBottomSheetContent(
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+    if (downloadProgress != null) {
+      Text(
+          text =
+              stringResource(
+                  R.string.region_downloading,
+                  downloadProgress.currentLevel,
+                  downloadProgress.fetchedInLevel,
+                  downloadProgress.totalInLevel,
+                  downloadProgress.fetchedTotal,
+                  downloadProgress.totalAcrossAllLevels,
+                  downloadProgress.failed,
+              ),
+          modifier = Modifier.padding(top = 12.dp),
+          style = MaterialTheme.typography.bodyMedium,
+      )
+      val fraction =
+          if (downloadProgress.totalAcrossAllLevels == 0) 0f
+          else
+              (downloadProgress.fetchedTotal + downloadProgress.failed).toFloat() /
+                  downloadProgress.totalAcrossAllLevels
+      LinearProgressIndicator(
+          progress = { fraction },
+          modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+      )
+    }
     Button(
         onClick = onDownload,
+        enabled = !isDownloading,
         modifier = Modifier.fillMaxWidth().padding(top = 24.dp),
     ) {
       Text(stringResource(R.string.region_download))
     }
     OutlinedButton(
         onClick = onCancel,
+        enabled = !isDownloading,
         modifier = Modifier.fillMaxWidth().padding(top = 12.dp, bottom = 12.dp),
     ) {
       Text(stringResource(R.string.region_cancel))
