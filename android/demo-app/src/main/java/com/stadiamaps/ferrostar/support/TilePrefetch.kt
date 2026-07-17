@@ -40,7 +40,7 @@ data class RegionDownloadProgress(
  * lat/lng box into `(level, tileId)` pairs using the same row-major world grid
  * (`tileId = row * nCols + col`) that [parseCachedTile] reverses.
  */
-internal fun enumerateTilesInBounds(
+internal fun findTilesInBounds(
     bounds: RegionBoundingBox,
     levels: Set<Int>,
 ): List<Pair<Int, Long>> {
@@ -65,11 +65,8 @@ internal fun enumerateTilesInBounds(
 }
 
 /**
- * Builds the relative tile path Valhalla uses on disk and in `tile_url`, e.g. `2/000/733/191` (no
- * file extension). This reimplements the forward direction of `GraphTile::FileSuffix`
- * (valhalla/src/baldr/graphtile.cc): the tile id is zero-padded to the digit count required by the
- * largest id at that level (rounded up to a multiple of 3), split into 3-digit groups, and joined
- * under the level directory. Keeping this byte-identical to Valhalla is what lets prefetched files
+ * Builds the relative tile path Valhalla uses on disk by reimplementing the FileSuffix method.
+ * Keeping this byte-identical to Valhalla is what lets prefetched files
  * be found by the engine's local-disk lookup instead of re-fetched over HTTP.
  */
 internal fun relativeTilePath(level: Int, tileId: Long): String {
@@ -93,7 +90,7 @@ private fun maxTileIdDigits(tileSize: Double): Int {
 
 /**
  * Downloads every routing tile intersecting [bounds] into [tileDir], one hierarchy level at a time
- * in order (0 = highways, then 1 = arterials, then 2 = local roads). Levels are processed strictly
+ * in order (0 = highways, then 1 = arterial roads, then 2 = local roads). Levels are processed strictly
  * sequentially so that an interrupted download still leaves the most structurally important tiles
  * usable; within a level, up to [MAX_CONCURRENT_FETCHES] tiles are fetched in parallel.
  *
@@ -109,7 +106,7 @@ suspend fun prefetchRegionTiles(
     levels: List<Int> = listOf(0, 1, 2),
     onProgress: (RegionDownloadProgress) -> Unit = {},
 ) = coroutineScope {
-  val perLevel = levels.map { it to enumerateTilesInBounds(bounds, setOf(it)) }
+  val perLevel = levels.map { it to findTilesInBounds(bounds, setOf(it)) }
   val totalAcrossAllLevels = perLevel.sumOf { it.second.size }
 
   var fetchedTotal = 0

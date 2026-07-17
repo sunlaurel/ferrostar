@@ -1,4 +1,4 @@
-package com.stadiamaps.ferrostar.ui
+package com.stadiamaps.ferrostar.ui.components.overlay
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.DpSize
@@ -33,6 +34,7 @@ import com.stadiamaps.ferrostar.composeui.views.components.controls.NavigationUI
 import com.stadiamaps.ferrostar.composeui.views.components.gridviews.InnerGridView
 import com.stadiamaps.ferrostar.core.location.toAndroidLocation
 import com.stadiamaps.ferrostar.maplibreui.runtime.NavigationMapState
+import com.stadiamaps.ferrostar.ui.DismissibleAutocompleteSearch
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -44,6 +46,7 @@ fun NotNavigatingOverlay(
   onTopOverlayBottomChanged: (Int) -> Unit = {},
   dismissSearchTrigger: Int = 0,
 ) {
+  val context = LocalContext.current
   val location by viewModel.location.collectAsState()
   val isSimulating by viewModel.simulated.collectAsState()
   val uiState by viewModel.navigationUiState.collectAsState()
@@ -67,19 +70,19 @@ fun NotNavigatingOverlay(
                       onTopOverlayBottomChanged(coordinates.boundsInRoot().bottom.roundToInt())
                     }
             ) {
-              DismissibleAutocompleteSearch(
-                  apiKey = apiKey,
-                  userLocation = location?.toAndroidLocation(),
-                  dismissTrigger = dismissSearchTrigger,
-              ) { feature ->
-                feature.center()?.let { center ->
-                  viewModel.selectDestination(
-                      location = center,
-                      label = feature.properties.name,
-                      origin = DestinationSelectionOrigin.SearchResult,
-                  )
+                DismissibleAutocompleteSearch(
+                    apiKey = apiKey,
+                    userLocation = location?.toAndroidLocation(),
+                    dismissTrigger = dismissSearchTrigger,
+                ) { feature ->
+                    feature.center()?.let { center ->
+                        viewModel.selectDestination(
+                            location = center,
+                            label = feature.properties.name,
+                            origin = DestinationSelectionOrigin.SearchResult,
+                        )
+                    }
                 }
-              }
             }
           }
         },
@@ -140,6 +143,12 @@ fun NotNavigatingOverlay(
                     stringResource(R.string.set_location_to_gps)
                   }
               Text(nextLocationText)
+            }
+            Button(
+                onClick = { viewModel.clearTileCache(context) },
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+              Text(stringResource(R.string.clear_tile_cache))
             }
 
             val currentLocationText =

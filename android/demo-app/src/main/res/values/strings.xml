@@ -11,6 +11,7 @@
     <string name="set_location_to_gps">Set location to GPS</string>
     <string name="location_is_simulated">Location: simulated</string>
     <string name="location_is_gps">Location: GPS</string>
+    <string name="clear_tile_cache">Clear cached tiles</string>
     <string name="select_region">Select region</string>
     <string name="show_tile_cache_overlay">Show cached tiles</string>
     <string name="service_selection">Service</string>

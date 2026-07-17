@@ -1,4 +1,4 @@
-package com.stadiamaps.ferrostar.ui
+package com.stadiamaps.ferrostar.ui.components.dialog
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -44,7 +44,7 @@ fun RouteAlertDialog(
           Text(text = "No route found", color = Color.White)
           Spacer(modifier = Modifier.height(8.dp))
           Text(
-              text = "We couldn't find a route to your destination :(",
+              text = "Unable to create a route to your destination",
               color = Color.White,
           )
           Row(

@@ -57,9 +57,11 @@ data class DemoNavigationSceneState(
     val destinationSheetHeightPx: Int = 0,
     val tileLevelNavigation: Int = -1,
     val isNoRouteFoundDialogVisible: Boolean = false,
+    val isCalculatingRoute: Boolean = false,
     val regionSelection: RegionSelection = RegionSelection(),
     val showTileCacheOverlay: Boolean = false,
     val regionDownload: RegionDownloadProgress? = null,
+    val tileCacheClearedTrigger: Int = 0,
 )
 
 /**
@@ -272,6 +274,20 @@ class DemoNavigationViewModel(
   }
 
   /**
+   * Deletes every cached routing tile in `tile_dir` and `id.txt`, forcing future route
+   * request to re-fetch tiles from scratch. Bumps [DemoNavigationSceneState.tileCacheClearedTrigger]
+   * so the scene's tile-scan effect re-runs and the cache overlay reflects the now-empty directory.
+   */
+  fun clearTileCache(context: Context) {
+    val tileDir = File(context.filesDir, Config.TILE_DIR)
+    viewModelScope.launch(Dispatchers.IO) {
+      val deleted = tileDir.deleteRecursively()
+      Log.i(TAG, "Cleared tile cache at ${tileDir.absolutePath} (success=$deleted)")
+      _sceneState.update { it.copy(tileCacheClearedTrigger = it.tileCacheClearedTrigger + 1) }
+    }
+  }
+
+  /**
    * Confirms the drawn region and prefetches every intersecting routing tile into `tile_dir`, one
    * hierarchy level at a time (highways first). Progress is streamed into [DemoNavigationSceneState.regionDownload]
    * so the confirmation sheet can show it; the selection is only cleared once the download settles.
@@ -366,12 +382,16 @@ class DemoNavigationViewModel(
         _ferrostarCore.update { AppModule.getFerrostarCore(options) }
       }
 
-      val routes = ferrostarCore.value.getRoutes(
-          lastLocation,
-          listOf(
-              Waypoint(coordinate = destination, kind = WaypointKind.BREAK),
-              ),
-          )
+      _sceneState.update { it.copy(isCalculatingRoute = true) }
+      val routes =
+          try {
+            ferrostarCore.value.getRoutes(
+                lastLocation,
+                listOf(Waypoint(coordinate = destination, kind = WaypointKind.BREAK)),
+            )
+          } finally {
+            _sceneState.update { it.copy(isCalculatingRoute = false) }
+          }
 
       if (routes.isEmpty()) {
         Log.w(TAG, "No routes returned for destination $destination; showing no-route-found dialog")

@@ -34,12 +34,13 @@ import com.stadiamaps.ferrostar.maplibreui.routeline.BorderedPolyline
 import com.stadiamaps.ferrostar.maplibreui.routeline.RouteOverlayBuilder
 import com.stadiamaps.ferrostar.maplibreui.runtime.rememberNavigationMapState
 import com.stadiamaps.ferrostar.maplibreui.views.DynamicallyOrientingNavigationView
-import com.stadiamaps.ferrostar.ui.ColoredRouteOverlay
-import com.stadiamaps.ferrostar.ui.DestinationSelectionBottomSheet
+import com.stadiamaps.ferrostar.ui.components.overlay.ColoredRouteOverlay
+import com.stadiamaps.ferrostar.ui.components.sheet.DestinationSelectionBottomSheet
 import com.stadiamaps.ferrostar.ui.DestinationSelectionCameraEffect
-import com.stadiamaps.ferrostar.ui.NotNavigatingOverlay
-import com.stadiamaps.ferrostar.ui.RegionSelectionBottomSheet
-import com.stadiamaps.ferrostar.ui.RouteAlertDialog
+import com.stadiamaps.ferrostar.ui.components.overlay.NotNavigatingOverlay
+import com.stadiamaps.ferrostar.ui.components.sheet.RegionSelectionBottomSheet
+import com.stadiamaps.ferrostar.ui.components.dialog.CalculatingRouteDialog
+import com.stadiamaps.ferrostar.ui.components.dialog.RouteAlertDialog
 import com.stadiamaps.ferrostar.core.valhalla.Config as ValhallaConfig
 import com.stadiamaps.ferrostar.support.CachedTile
 import com.stadiamaps.ferrostar.support.scanCachedTiles
@@ -122,9 +123,14 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
   var destinationPreviewTopPaddingPx by remember { mutableIntStateOf(0) }
   var dismissSearchTrigger by remember { mutableIntStateOf(0) }
   var tiles by remember { mutableStateOf<List<CachedTile>>(emptyList()) }
-  // Rescans the tile directory when the region is finished downloading and updates the overlay
+  // Rescans the tile directory and updates overlay whenever a region download or a route
+  // calculation starts or finishes, or the cache is cleared
   val isRegionDownloadActive = sceneState.regionDownload != null
-  LaunchedEffect(isRegionDownloadActive) {
+  LaunchedEffect(
+      isRegionDownloadActive,
+      sceneState.isCalculatingRoute,
+      sceneState.tileCacheClearedTrigger,
+  ) {
     tiles =
         withContext(Dispatchers.IO) {
           scanCachedTiles(File(context.filesDir, ValhallaConfig.TILE_DIR))
@@ -249,6 +255,10 @@ fun DemoNavigationScene(viewModel: DemoNavigationViewModel = AppModule.viewModel
     RouteAlertDialog(
         onDismiss = { viewModel.dismissNoRouteFoundDialog() }
     )
+  }
+
+  if (sceneState.isCalculatingRoute) {
+    CalculatingRouteDialog()
   }
 }
 

@@ -89,9 +89,6 @@ class ValhallaService : Service() {
       context: Context,
       tileDir: String = Config.TILE_DIR,
   ): Valhalla {
-    // Anchor the cache under the app's private filesDir; a bare relative path resolves against the
-    // process working directory (/ on Android), which is not writable, so Valhalla could neither
-    // cache fetched tiles nor write its id.txt there.
     val cacheDir =
         File(context.filesDir, tileDir).apply {
           check(mkdirs() || isDirectory) { "Unable to create tile_dir at $absolutePath" }

@@ -20,6 +20,9 @@ import com.valhalla.api.models.ValhallaLongUnits
 import java.util.UUID
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import uniffi.ferrostar.BoundingBox
 import uniffi.ferrostar.GeographicCoordinate
@@ -56,6 +59,7 @@ class ValhallaServiceRouter(
     val connection =
         object : ServiceConnection {
           override fun onServiceConnected(name: ComponentName, binder: IBinder) {
+            val serviceConnection = this
             Log.i(TAG, "Valhalla service connected")
             val service = IValhallaService.Stub.asInterface(binder)
 
@@ -67,21 +71,23 @@ class ValhallaServiceRouter(
             val request =
                 ValhallaRouteRequest(locations = osmWaypoints, costing = CostingModel.auto)
 
-            val routes =
-                try {
-                  val requestJson =
-                      valhallaIpcMoshi.adapter(ValhallaRouteRequest::class.java).toJson(request)
-                  decodeRoutesEnvelope(
-                      service.getRoutes(requestJson)
-                  ).toFerrostarRoutes()
-                } catch (e: Exception) {
-                  Log.e(TAG, "Routes weren't able to be fetched", e)
-                  emptyList()
-                }
+            CoroutineScope(Dispatchers.IO).launch {
+              val routes =
+                  try {
+                    val requestJson =
+                        valhallaIpcMoshi.adapter(ValhallaRouteRequest::class.java).toJson(request)
+                    decodeRoutesEnvelope(
+                        service.getRoutes(requestJson)
+                    ).toFerrostarRoutes()
+                  } catch (e: Exception) {
+                    Log.e(TAG, "Routes weren't able to be fetched", e)
+                    emptyList()
+                  }
 
-            context.unbindService(this)
-            Log.i(TAG, "Valhalla service disconnected")
-            continuation.resume(routes)
+              context.unbindService(serviceConnection)
+              Log.i(TAG, "Valhalla service disconnected")
+              continuation.resume(routes)
+            }
           }
 
           override fun onServiceDisconnected(name: ComponentName) {

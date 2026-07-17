@@ -11,6 +11,7 @@
     <string name="set_location_to_gps">GPS-Standort verwenden</string>
     <string name="location_is_simulated">Standort: simuliert</string>
     <string name="location_is_gps">Standort: GPS</string>
+    <string name="clear_tile_cache">Zwischengespeicherte Kacheln löschen</string>
     <string name="select_region">Region auswählen</string>
     <string name="show_tile_cache_overlay">Zwischengespeicherte Kacheln anzeigen</string>
     <string name="service_selection">die Dienstleistung</string>

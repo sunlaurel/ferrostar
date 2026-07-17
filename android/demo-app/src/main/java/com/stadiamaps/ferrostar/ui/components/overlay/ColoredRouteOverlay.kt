@@ -1,4 +1,4 @@
-package com.stadiamaps.ferrostar.ui
+package com.stadiamaps.ferrostar.ui.components.overlay
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
